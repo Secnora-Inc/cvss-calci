@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CVSS Calculator</title>
+  <style>
+    :root {
+      --primary: #00b123;
+      --secondary: #00b123;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --critical: #a50000;
+      --high: #ff0000;
+      --medium: #ff8300;
+      --low: #2ecc00;
+      --info: #008ade;
+    }
+    [data-theme="dark"] {
+      --light: #343a40;
+      --dark: #f8f9fa;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      line-height: 1.4;
+      color: var(--dark);
+      background-color: var(--light);
+      margin: 0;
+      padding: 10px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .container {
+      max-width: 1500px;
+      margin: 0 auto;
+      background: var(--dark);
+      color: var(--light);
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .top-bar h1 {
+      color: var(--primary);
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    .actions button {
+      margin-left: 10px;
+      border: 2px solid;
+      font-weight: bold;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
+      background-color: var(--dark);
+      color: var(--light);
+    }
+    #copyUrlBtn { background-color: var(--info); border-color: var(--info); }
+    #copyUrlBtn:hover { background-color: var(--light); color: var(--info); }
+    #resetBtn { background-color: var(--critical); border-color: var(--critical); }
+    #resetBtn:hover { background-color: var(--light); color: var(--critical); }
+    .calculator-form { display: flex; flex-direction: column; gap: 20px; }
+    .calculator-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .metric-group {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px;
+      background: var(--light);
+      color: var(--dark);
+      border-left: 3px solid var(--secondary);
+      border-radius: 4px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .metric-group h3 { margin: 0 0 5px; color: var(--primary); }
+    .button-group {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 5px;
+      margin-top: 3px;
+    }
+    .button-group button {
+      padding: 6px;
+      border: 1px solid #ced4da;
+      border-radius: 3px;
+      background: var(--dark);
+      color: var(--light);
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .button-group button:hover { background: var(--light); color: var(--dark); }
+    .button-group button.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: #008018;
+    }
+    .results {
+      background: var(--light);
+      color: var(--dark);
+      padding: 20px;
+      border-radius: 5px;
+      margin-top: 20px;
+      text-align: center;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .score-display { font-size: 2.5rem; font-weight: bold; margin: 15px 0; }
+    .score-critical { color: var(--critical); }
+    .score-high     { color: var(--high); }
+    .score-medium   { color: var(--medium); }
+    .score-low      { color: var(--low); }
+    .score-info     { color: var(--info); }
+    .vector-string {
+      font-family: monospace;
+      background: var(--dark);
+      color: var(--light);
+      padding: 10px;
+      border-radius: 4px;
+      word-break: break-all;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    #tooltip {
+      position: absolute;
+      display: none;
+      max-width: 280px;
+      background: #ffffcc;
+      color: #333;
+      border: 1px solid #aaa;
+      padding: 8px;
+      border-radius: 4px;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+      z-index: 10000;
+      font-size: 0.9rem;
+    }
+    /* CVSS 4.0 toggle button */
+    #cvss4Btn {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      padding: 8px 14px;
+      border-radius: 4px;
+      background-color: var(--info);
+      color: #fff;
+      border: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+      font-size: 0.9rem;
+      z-index: 1000;
+      transition: background-color 0.3s;
+    }
+    #cvss4Btn:hover { background-color: var(--medium); }
+    /* Theme toggle */
+    #themeToggleBtn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: var(--info);
+      color: #fff;
+      border: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+      font-size: 1.5rem;
+      transition: background-color 0.3s;
+      z-index: 1000;
+    }
+#bottomLogo {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  width: 250px;
+  height: 150px;
+  object-fit: contain;
+  z-index: 1000;
+}
+
+    #themeToggleBtn:hover { background-color: var(--medium); }
+  </style>
+</head>
+<body>
+  <div class="container" id="mainContainer">
+    <div class="top-bar">
+      <h1 id="pageTitle">CVSS v3.1 Base Score Calculator</h1>
+      <div class="actions">
+        <button id="copyUrlBtn">COPY URL</button>
+        <button id="resetBtn">RESET</button>
+      </div>
+    </div>
+    <div class="calculator-form" id="cvss31Form">
+      <!-- CVSS 3.1 rows unchanged -->
+      <div class="calculator-row">
+        <!-- AV -->
+        <div class="metric-group">
+          <h3>Attack Vector (AV)</h3>
+          <div class="button-group">
+            <button class="av-button" data-value="N">Network (N)</button>
+            <button class="av-button" data-value="A">Adjacent (A)</button>
+            <button class="av-button" data-value="L">Local (L)</button>
+            <button class="av-button" data-value="P">Physical (P)</button>
+          </div>
+          <input id="attackVector" type="hidden" />
+        </div>
+        <!-- AC -->
+        <div class="metric-group">
+          <h3>Attack Complexity (AC)</h3>
+          <div class="button-group">
+            <button class="ac-button" data-value="L">Low (L)</button>
+            <button class="ac-button" data-value="H">High (H)</button>
+          </div>
+          <input id="attackComplexity" type="hidden" />
+        </div>
+        <!-- PR -->
+        <div class="metric-group">
+          <h3>Privileges Required (PR)</h3>
+          <div class="button-group">
+            <button class="pr-button" data-value="N">None (N)</button>
+            <button class="pr-button" data-value="L">Low (L)</button>
+            <button class="pr-button" data-value="H">High (H)</button>
+          </div>
+          <input id="privilegesRequired" type="hidden" />
+        </div>
+        <!-- UI -->
+        <div class="metric-group">
+          <h3>User Interaction (UI)</h3>
+          <div class="button-group">
+            <button class="ui-button" data-value="N">None (N)</button>
+            <button class="ui-button" data-value="R">Required (R)</button>
+          </div>
+          <input id="userInteraction" type="hidden" />
+        </div>
+      </div>
+      <div class="calculator-row">
+        <!-- S -->
+        <div class="metric-group">
+          <h3>Scope (S)</h3>
+          <div class="button-group">
+            <button class="s-button" data-value="U">Unchanged (U)</button>
+            <button class="s-button" data-value="C">Changed (C)</button>
+          </div>
+          <input id="scope" type="hidden" />
+        </div>
+        <!-- C -->
+        <div class="metric-group">
+          <h3>Confidentiality (C)</h3>
+          <div class="button-group">
+            <button class="c-button" data-value="H">High (H)</button>
+            <button class="c-button" data-value="L">Low (L)</button>
+            <button class="c-button" data-value="N">None (N)</button>
+          </div>
+          <input id="confidentialityImpact" type="hidden" />
+        </div>
+        <!-- I -->
+        <div class="metric-group">
+          <h3>Integrity (I)</h3>
+          <div class="button-group">
+            <button class="i-button" data-value="H">High (H)</button>
+            <button class="i-button" data-value="L">Low (L)</button>
+            <button class="i-button" data-value="N">None (N)</button>
+          </div>
+          <input id="integrityImpact" type="hidden" />
+        </div>
+        <!-- A -->
+        <div class="metric-group">
+          <h3>Availability (A)</h3>
+          <div class="button-group">
+            <button class="a-button" data-value="H">High (H)</button>
+            <button class="a-button" data-value="L">Low (L)</button>
+            <button class="a-button" data-value="N">None (N)</button>
+          </div>
+          <input id="availabilityImpact" type="hidden" />
+        </div>
+      </div>
+      <div class="results" id="results" style="display:none;">
+        <div class="score-display" id="scoreDisplay"></div>
+        <div class="vector-string" id="vectorString"></div>
+      </div>
+    </div>
+  </div>
+  <div id="tooltip"></div>
+  <button id="cvss4Btn">CVSS 4.0</button>
+  <button id="themeToggleBtn">💡</button>
+  <script>
+    const metrics = {
+      AV: { N: 0.85, A: 0.62, L: 0.55, P: 0.2 },
+      AC: { L: 0.77, H: 0.44 },
+      PR: { N: 0.85, L: { U: 0.62, C: 0.68 }, H: { U: 0.27, C: 0.5 } },
+      UI: { N: 0.85, R: 0.62 },
+      CIA: { H: 0.56, L: 0.22, N: 0 }
+    };
+    const descriptions = {
+      AV: {
+        N: 'Worst: The vulnerable component is bound to the network stack and the set of possible attackers extends beyond the other options listed below, up to and including the entire Internet. Such a vulnerability is often termed “remotely exploitable” and can be thought of as an attack being exploitable at the protocol level one or more network hops away (e.g., across one or more routers).',
+        A: 'Worse: The vulnerable component is bound to the network stack, but the attack is limited at the protocol level to a logically adjacent topology. This can mean an attack must be launched from the same shared physical (e.g., Bluetooth or IEEE 802.11) or logical (e.g., local IP subnet) network, or from within a secure or otherwise limited administrative domain (e.g., MPLS, secure VPN to an administrative network zone). One example is an ARP or neighbor discovery flood denial of service on the local LAN segment.',
+        L: 'Bad: The vulnerable component is not bound to the network stack and the attacker’s path is via read/write/execute capabilities. Either the attacker exploits the vulnerability by accessing the target system locally (e.g., keyboard, console), or remotely (e.g., SSH), or relies on user interaction by another person to perform actions required to exploit the vulnerability (e.g., social engineering).',
+        P: 'Bad: The attack requires the attacker to physically touch or manipulate the vulnerable component. Examples include evil maid and cold boot attacks or peripheral DMA exploits.'
+      },
+      AC: {
+        L: 'Worst: Specialized access conditions or extenuating circumstances do not exist. An attacker can expect repeatable success when attacking the vulnerable component.',
+        H: 'Bad: A successful attack depends on conditions beyond the attacker’s control and requires measurable effort.'
+      },
+      PR: {
+        N: 'Worst: The attacker is unauthorized and requires no access.',
+        L: 'Worse: The attacker requires privileges that provide basic user capabilities that could normally affect only settings and files owned by a user. Alternatively, an attacker with Low privileges has the ability to access only non-sensitive resources.',
+        H: 'Bad: The attacker requires privileges that provide significant (e.g., administrative) control over the vulnerable component allowing access to component-wide settings and files.'
+      },
+      UI: {
+        N: 'Worst: The vulnerable system can be exploited without interaction from any user.',
+        R: 'Bad: Successful exploitation of this vulnerability requires a user to take some action before the vulnerability can be exploited. For example, a successful exploit may only be possible during the installation of an application by a system administrator.'
+      },
+      S: {
+        U: 'Bad: An exploited vulnerability can only affect resources managed by the same security authority. In this case, the vulnerable component and the impacted component are either the same, or both are managed by the same security authority.',
+        C: 'Worst: An exploited vulnerability can affect resources beyond the security scope managed by the security authority of the vulnerable component. In this case, the vulnerable component and the impacted component are different and managed by different security authorities.'
+      },
+      C: {
+        N: 'Good: There is no loss of confidentiality within the impacted component.',
+        L: 'Bad: There is some loss of confidentiality. Access to some restricted information is obtained, but the attacker does not have control over what information is obtained, or the amount or kind of loss is limited. The information disclosure does not cause a direct, serious loss to the impacted component.',
+        H: 'Worst: There is a total loss of confidentiality, resulting in all resources within the impacted component being divulged to the attacker. Alternatively, access to only some restricted information is obtained, but the disclosed information presents a direct, serious impact. For example, an attacker steals the administrator\'s password, or private encryption keys of a web server.'
+      },
+      I: {
+        N: 'Good: There is no loss of integrity within the impacted component.',
+        L: 'Bad: Modification of data is possible, but the attacker does not have control over the consequence of a modification, or the amount of modification is limited. The data modification does not have a direct, serious impact on the impacted component.',
+        H: 'Worst: There is a total loss of integrity, or a complete loss of protection. For example, the attacker is able to modify any/all files protected by the impacted component. Alternatively, only some files can be modified, but malicious modification would present a direct, serious consequence to the impacted component.'
+      },
+      A: {
+        N: 'Good: There is no impact to availability within the impacted component.',
+        L: 'Bad: Performance is reduced or there are interruptions in resource availability. Even if repeated exploitation of the vulnerability is possible, the attacker does not have the ability to completely deny service to legitimate users. The resources in the impacted component are either partially available all of the time, or fully available only some of the time, but overall there is no direct, serious consequence to the impacted component.',
+        H: 'Worst: There is a total loss of availability, resulting in the attacker being able to fully deny access to resources in the impacted component; this loss is either sustained (while the attacker continues to deliver the attack) or persistent (the condition persists even after the attack has completed). Alternatively, the attacker has the ability to deny some availability, but the loss of availability presents a direct, serious consequence to the impacted component.'
+      }
+    };
+    const tooltip = document.getElementById('tooltip');
+    function showTooltip(e, text) {
+      tooltip.textContent = text;
+      tooltip.style.left = e.pageX + 12 + 'px';
+      tooltip.style.top = e.pageY + 12 + 'px';
+      tooltip.style.display = 'block';
+    }
+    function hideTooltip() { tooltip.style.display = 'none'; }
+    function setupButtonGroup(selector, inputId) {
+      document.querySelectorAll(selector).forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll(selector).forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(inputId).value = btn.dataset.value;
+          calculateIfAll();
+        });
+      });
+    }
+    function calculateIfAll() {
+      const ids = ['attackVector','attackComplexity','privilegesRequired','userInteraction','scope','confidentialityImpact','integrityImpact','availabilityImpact'];
+      if (ids.every(id => document.getElementById(id).value)) calcCVSS();
+    }
+    function calcCVSS() {
+      const av = document.getElementById('attackVector').value;
+      const ac = document.getElementById('attackComplexity').value;
+      const pr = document.getElementById('privilegesRequired').value;
+      const ui = document.getElementById('userInteraction').value;
+      const s  = document.getElementById('scope').value;
+      const c  = document.getElementById('confidentialityImpact').value;
+      const i  = document.getElementById('integrityImpact').value;
+      const a  = document.getElementById('availabilityImpact').value;
+      const exploitability = 8.22 * metrics.AV[av] * metrics.AC[ac] * ((typeof metrics.PR[pr] === 'object') ? metrics.PR[pr][s] : metrics.PR[pr]) * metrics.UI[ui];
+      const iss = 1 - (1 - metrics.CIA[c]) * (1 - metrics.CIA[i]) * (1 - metrics.CIA[a]);
+      let impact = s === 'U' ? 6.42 * iss : 7.52 * (iss - 0.029) - 3.25 * Math.pow((iss - 0.02), 15);
+      let score = impact > 0 ?
+        (s === 'U'
+          ? Math.min(10, Math.ceil((impact + exploitability) * 10) / 10)
+          : Math.min(10, Math.ceil(Math.min(1.08 * (impact + exploitability), 10) * 10) / 10))
+        : 0;
+      let severity =
+        score >= 9   ? 'Critical'
+      : score >= 7   ? 'High'
+      : score >= 4   ? 'Medium'
+      : score > 0    ? 'Low'
+      :                'Info';
+      const disp = document.getElementById('scoreDisplay');
+      disp.className = 'score-display score-' + severity.toLowerCase();
+      disp.textContent = `${score.toFixed(1)} ⇒ ${severity}`;
+      document.getElementById('vectorString').textContent = `CVSS:3.1/AV:${av}/AC:${ac}/PR:${pr}/UI:${ui}/S:${s}/C:${c}/I:${i}/A:${a}`;
+      document.getElementById('results').style.display = 'block';
+    }
+    function copyUrl() {
+      const vec = document.getElementById('vectorString').textContent;
+      if (vec) navigator.clipboard.writeText(`${location.origin}${location.pathname}#${vec}`);
+    }
+    function resetAll() {
+      document.querySelectorAll('.button-group button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('input[type=hidden]').forEach(i => i.value = '');
+      document.getElementById('results').style.display = 'none';
+      history.replaceState(null, '', location.pathname);
+    }
+    function attachTooltips(metricKey, selector) {
+      document.querySelectorAll(selector).forEach(btn => {
+        btn.addEventListener('mouseenter', e => showTooltip(e, descriptions[metricKey][btn.dataset.value]));
+        btn.addEventListener('mousemove',  e => showTooltip(e, descriptions[metricKey][btn.dataset.value]));
+        btn.addEventListener('mouseleave', hideTooltip);
+      });
+    }
+    document.getElementById('copyUrlBtn').addEventListener('click', copyUrl);
+    document.getElementById('resetBtn').addEventListener('click', resetAll);
+    document.getElementById('themeToggleBtn').addEventListener('click', () => {
+      const d = document.documentElement;
+      if (d.getAttribute('data-theme') === 'dark') d.removeAttribute('data-theme');
+      else d.setAttribute('data-theme','dark');
+    });
+    document.getElementById('cvss4Btn').addEventListener('click', () => {
+      const btn = document.getElementById('cvss4Btn');
+      if (btn.textContent === 'CVSS 4.0') {
+        document.getElementById('pageTitle').textContent = 'CVSS v4.0 Base Score Calculator';
+        document.getElementById('cvss31Form').innerHTML = '<p>CVSS 4.0 calculator coming soon.</p>';
+        document.getElementById('copyUrlBtn').style.display = 'none';
+        document.getElementById('resetBtn').style.display = 'none';
+        btn.textContent = 'CVSS 3.1';
+      } else {
+        location.reload();
+      }
+    });
+    window.addEventListener('load', () => {
+      setupButtonGroup('.av-button','attackVector');
+      setupButtonGroup('.ac-button','attackComplexity');
+      setupButtonGroup('.pr-button','privilegesRequired');
+      setupButtonGroup('.ui-button','userInteraction');
+      setupButtonGroup('.s-button','scope');
+      setupButtonGroup('.c-button','confidentialityImpact');
+      setupButtonGroup('.i-button','integrityImpact');
+      setupButtonGroup('.a-button','availabilityImpact');
+      ['AV','AC','PR','UI','S','C','I','A'].forEach(k => attachTooltips(k, '.' + k.toLowerCase() + '-button'));
+      const hash = decodeURIComponent(location.hash.slice(1));
+      if (hash.startsWith('CVSS:3.1/')) {
+        hash.split('/').slice(1).forEach(p => {
+          const [k,v] = p.split(':');
+          const map = { AV:'av-button', AC:'ac-button', PR:'pr-button', UI:'ui-button', S:'s-button', C:'c-button', I:'i-button', A:'a-button' };
+          const btn = document.querySelector(`.${map[k]}[data-value=\"${v}\"]`);
+          if (btn) btn.click();
+        });
+      }
+    });
+  </script>
+<img id="bottomLogo" src="logo.png" alt="Logo">
+
+</body>
+</html>
