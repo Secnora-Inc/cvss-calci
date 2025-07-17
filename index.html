@@ -1,447 +1,1268 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CVSS Calculator</title>
-  <style>
-    :root {
-      --primary: #00b123;
-      --secondary: #00b123;
-      --light: #f8f9fa;
-      --dark: #343a40;
-      --critical: #a50000;
-      --high: #ff0000;
-      --medium: #ff8300;
-      --low: #2ecc00;
-      --info: #008ade;
-    }
-    [data-theme="dark"] {
-      --light: #343a40;
-      --dark: #f8f9fa;
-    }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      line-height: 1.4;
-      color: var(--dark);
-      background-color: var(--light);
-      margin: 0;
-      padding: 10px;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    .container {
-      max-width: 1500px;
-      margin: 0 auto;
-      background: var(--dark);
-      color: var(--light);
-      padding: 15px;
-      border-radius: 6px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      transition: background-color 0.3s, color 0.3s;
-    }
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    .top-bar h1 {
-      color: var(--primary);
-      margin: 0;
-      font-size: 1.5rem;
-    }
-    .actions button {
-      margin-left: 10px;
-      border: 2px solid;
-      font-weight: bold;
-      padding: 6px 12px;
-      cursor: pointer;
-      transition: background-color 0.2s, color 0.2s;
-      background-color: var(--dark);
-      color: var(--light);
-    }
-    #copyUrlBtn { background-color: var(--info); border-color: var(--info); }
-    #copyUrlBtn:hover { background-color: var(--light); color: var(--info); }
-    #resetBtn { background-color: var(--critical); border-color: var(--critical); }
-    #resetBtn:hover { background-color: var(--light); color: var(--critical); }
-    .calculator-form { display: flex; flex-direction: column; gap: 20px; }
-    .calculator-row { display: flex; gap: 10px; flex-wrap: wrap; }
-    .metric-group {
-      flex: 1;
-      min-width: 180px;
-      padding: 10px;
-      background: var(--light);
-      color: var(--dark);
-      border-left: 3px solid var(--secondary);
-      border-radius: 4px;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    .metric-group h3 { margin: 0 0 5px; color: var(--primary); }
-    .button-group {
-      display: grid;
-      grid-template-columns: repeat(4,1fr);
-      gap: 5px;
-      margin-top: 3px;
-    }
-    .button-group button {
-      padding: 6px;
-      border: 1px solid #ced4da;
-      border-radius: 3px;
-      background: var(--dark);
-      color: var(--light);
-      cursor: pointer;
-      transition: background-color 0.2s, color 0.2s;
-    }
-    .button-group button:hover { background: var(--light); color: var(--dark); }
-    .button-group button.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: #008018;
-    }
-    .results {
-      background: var(--light);
-      color: var(--dark);
-      padding: 20px;
-      border-radius: 5px;
-      margin-top: 20px;
-      text-align: center;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    .score-display { font-size: 2.5rem; font-weight: bold; margin: 15px 0; }
-    .score-critical { color: var(--critical); }
-    .score-high     { color: var(--high); }
-    .score-medium   { color: var(--medium); }
-    .score-low      { color: var(--low); }
-    .score-info     { color: var(--info); }
-    .vector-string {
-      font-family: monospace;
-      background: var(--dark);
-      color: var(--light);
-      padding: 10px;
-      border-radius: 4px;
-      word-break: break-all;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    #tooltip {
-      position: absolute;
-      display: none;
-      max-width: 280px;
-      background: #ffffcc;
-      color: #333;
-      border: 1px solid #aaa;
-      padding: 8px;
-      border-radius: 4px;
-      box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
-      z-index: 10000;
-      font-size: 0.9rem;
-    }
-    /* CVSS 4.0 toggle button */
-    #cvss4Btn {
-      position: fixed;
-      bottom: 80px;
-      right: 20px;
-      padding: 8px 14px;
-      border-radius: 4px;
-      background-color: var(--info);
-      color: #fff;
-      border: none;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      cursor: pointer;
-      font-size: 0.9rem;
-      z-index: 1000;
-      transition: background-color 0.3s;
-    }
-    #cvss4Btn:hover { background-color: var(--medium); }
-    /* Theme toggle */
-    #themeToggleBtn {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background-color: var(--info);
-      color: #fff;
-      border: none;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      cursor: pointer;
-      font-size: 1.5rem;
-      transition: background-color 0.3s;
-      z-index: 1000;
-    }
-#bottomLogo {
-  position: fixed;
-  bottom: 10px;
-  left: 10px;
-  width: 250px;
-  height: 150px;
-  object-fit: contain;
-  z-index: 1000;
-}
-footer {padding: 3px;}
-    #themeToggleBtn:hover { background-color: var(--medium); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVSS v4.0 & v3.1 Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /* --- General & Theming --- */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #28a745; /* Green for dark mode */
+            --primary-hover-color: #218838;
+            --text-color: #e0e0e0;
+            --text-muted-color: #888;
+            --border-color: #333;
+            --warm-white: #f5f5f5;
+            --divider-color: rgba(255, 255, 255, 0.1);
+            --tooltip-bg: #333;
+            --tooltip-text: #f1f1f1;
+            --severity-none: #5cb85c;
+            --severity-low: #f0ad4e;
+            --severity-medium: #fd7e14;
+            --severity-high: #d9534f;
+            --severity-critical: #b52b27;
+            --severity-high-text: #d9534f;
+            --severity-medium-text: #fd7e14;
+            --severity-low-text: #f0ad4e;
+            --transition-speed: 0.3s;
+        }
+
+        body.light-theme {
+            --bg-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --primary-color: #0d6efd; /* Blue for light mode */
+            --primary-hover-color: #0a58ca;
+            --text-color: #212529;
+            --text-muted-color: #6c757d;
+            --border-color: #dee2e6;
+            --warm-white: #212529;
+            --divider-color: rgba(0, 0, 0, 0.1);
+            --tooltip-bg: #212529;
+            --tooltip-text: #f1f1f1;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+
+        /* --- Main Layout --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        
+        .calculator-container {
+            display: none;
+        }
+        .calculator-container.active {
+            display: block;
+        }
+
+        /* --- Header --- */
+        .main-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            transition: border-color var(--transition-speed);
+        }
+
+        .title-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-grow: 1;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .title-container h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+        
+        .credit-line {
+            font-family: 'Candara';
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .credit-line a {
+            color: inherit;
+            text-decoration: none;
+        }
+        .credit-line a:hover {
+            text-decoration: underline;
+        }
+
+        .header-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            flex-grow: 1;
+            justify-content: space-between;
+            width: 100%; /* Ensure it takes full width below title */
+        }
+
+        /* --- Score Display --- */
+        .score-display {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .score-entry {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem 1.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--surface-color);
+            min-width: 120px;
+            text-align: center;
+            transition: background-color var(--transition-speed), border-color var(--transition-speed);
+        }
+        
+        .score-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted-color);
+            transition: color var(--transition-speed);
+        }
+
+        .severity-rating {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+        }
+
+        /* --- Vector & Actions --- */
+        .vector-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-width: 250px;
+            flex-grow: 1;
+        }
+
+        .vector-string-container {
+            background-color: var(--surface-color);
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            word-break: break-all;
+            font-family: "SF Mono", "Fira Code", "Source Code Pro", monospace;
+            color: var(--text-color);
+            transition: background-color var(--transition-speed), border-color var(--transition-speed), color var(--transition-speed);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            flex-grow: 1;
+            padding: 0.6rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--surface-color);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        body.light-theme .action-btn:hover {
+            background-color: #e9ecef;
+        }
+        body:not(.light-theme) .action-btn:hover {
+            background-color: #333;
+        }
+
+        #copy-btn:hover {
+            border-color: var(--primary-color);
+        }
+
+        /* --- Disclaimer --- */
+        .disclaimer {
+            background-color: rgba(13, 110, 253, 0.1);
+            border: 1px solid rgba(13, 110, 253, 0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        body.light-theme .disclaimer {
+             background-color: rgba(13, 110, 253, 0.05);
+             border-color: rgba(13, 110, 253, 0.2);
+        }
+
+
+        /* --- Macro Vector Details --- */
+        #macro-vector-accordion {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            transition: background-color var(--transition-speed), border-color var(--transition-speed);
+        }
+
+        .macro-vector-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            list-style: none;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .macro-vector-header::-webkit-details-marker {
+            display: none;
+        }
+
+        .toggle-icon {
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1.5em;
+            line-height: 1;
+        }
+
+        #macro-vector-accordion[open] > .macro-vector-header {
+            border-bottom: 1px solid var(--border-color);
+            transition: border-color var(--transition-speed);
+        }
+
+        .mono-font {
+            font-family: "SF Mono", "Fira Code", "Source Code Pro", monospace;
+            background-color: var(--bg-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--primary-color);
+            margin-left: 0.5rem;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+
+        .severity-breakdown-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 0.75rem 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            transition: border-color var(--transition-speed);
+        }
+
+        .breakdown-item span:first-child {
+            color: var(--text-muted-color);
+            transition: color var(--transition-speed);
+        }
+
+        .breakdown-item span:last-child {
+            font-weight: 700;
+        }
+
+
+        /* --- Accordion & Metrics --- */
+        details:not(#macro-vector-accordion) {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            transition: background-color var(--transition-speed), border-color var(--transition-speed);
+        }
+
+        summary:not(.macro-vector-header) {
+            font-size: 1.25rem;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            list-style: revert; /* Use default browser arrow */
+        }
+        
+        .metrics-grid {
+            padding: 0 1.5rem 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .metric-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .metric-group-heading {
+            grid-column: 1 / -1;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-muted-color);
+            margin-top: 1rem;
+            margin-bottom: -0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--divider-color);
+        }
+
+        .metric-label {
+            font-weight: 600;
+            color: var(--warm-white);
+            transition: color var(--transition-speed);
+        }
+        
+        .metric-label .metric-code {
+            font-family: "SF Mono", "Fira Code", monospace;
+            font-size: 0.9em;
+            background-color: #333;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background-color var(--transition-speed);
+        }
+
+        body.light-theme .metric-label .metric-code {
+            background-color: #e9ecef;
+        }
+
+        .metric-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .metric-btn {
+            padding: 0.5rem 0.8rem;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-muted-color);
+            transition: all 0.2s ease;
+        }
+
+        body:not(.light-theme) .metric-btn {
+            color: var(--warm-white);
+        }
+        
+        .metric-btn:hover {
+            border-color: var(--text-color);
+            color: var(--text-color);
+        }
+
+        .metric-btn.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        /* --- Tooltips --- */
+        [data-tooltip] {
+            position: relative;
+            cursor: help;
+        }
+
+        [data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 8px;
+            background-color: var(--tooltip-bg);
+            color: var(--tooltip-text);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 400;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            width: 280px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        [data-tooltip]:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+
+        /* --- Floating Action Buttons --- */
+        .fab-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .fab {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 1.2rem; /* Adjusted for text */
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: background-color var(--transition-speed), color var(--transition-speed), border-color var(--transition-speed), transform 0.2s ease;
+        }
+        .fab:hover {
+            transform: scale(1.1);
+        }
+        #theme-toggle {
+            font-size: 1.5rem; /* Keep bulb icon larger */
+        }
+
+        /* --- Responsive Design --- */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .main-header, .header-content {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .title-container h1 {
+                font-size: 2rem;
+            }
+            
+            .score-display {
+                justify-content: space-around;
+            }
+
+            .fab-container {
+                bottom: 15px;
+                right: 15px;
+            }
+
+            .fab {
+                width: 45px;
+                height: 45px;
+                font-size: 1rem;
+            }
+            #theme-toggle {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="container" id="mainContainer">
-    <div class="top-bar">
-      <h1 id="pageTitle">CVSS v3.1 Base Score Calculator</h1>
-      <div class="actions">
-        <button id="copyUrlBtn">COPY URL</button>
-        <button id="resetBtn">RESET</button>
-      </div>
+    <div id="cvss4-calculator" class="calculator-container active">
+        <div class="container">
+            <header class="main-header">
+                <div class="title-container">
+                    <h1>CVSS v4.0 Calculator 🧮</h1>
+                    <div class="credit-line">
+                        Made With ❤️ By <u><a href="https://secnora.com" target="_blank" rel="noopener noreferrer">SECNORA OÜ</a></u>
+                    </div>
+                </div>
+                <div class="header-content">
+                    <div class="score-display">
+                        <div class="score-entry">
+                            <span class="score-value" id="cvss-b-score">-.-</span>
+                            <span class="score-label">CVSS-B</span>
+                            <span class="severity-rating" id="cvss-b-severity">None</span>
+                        </div>
+                        <div class="score-entry">
+                            <span class="score-value" id="cvss-bt-score">-.-</span>
+                            <span class="score-label">CVSS-BT</span>
+                            <span class="severity-rating" id="cvss-bt-severity">None</span>
+                        </div>
+                        <div class="score-entry">
+                            <span class="score-value" id="cvss-be-score">-.-</span>
+                            <span class="score-label">CVSS-BE</span>
+                            <span class="severity-rating" id="cvss-be-severity">None</span>
+                        </div>
+                        <div class="score-entry">
+                            <span class="score-value" id="cvss-bte-score">-.-</span>
+                            <span class="score-label">CVSS-BTE</span>
+                            <span class="severity-rating" id="cvss-bte-severity">None</span>
+                        </div>
+                    </div>
+                    <div class="vector-actions">
+                        <div class="vector-string-container" id="vector-string-display">CVSS:4.0</div>
+                        <div class="action-buttons">
+                            <button class="action-btn" id="copy-btn-4">📋 Copy URL</button>
+                            <button class="action-btn" id="reset-btn-4">🔄 Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <details id="macro-vector-accordion">
+                <summary class="macro-vector-header">
+                    <span>Macro Vector: <span id="macro-vector-value" class="mono-font"></span></span>
+                    <span class="toggle-icon">+</span>
+                </summary>
+                <div class="severity-breakdown-grid">
+                    <div class="breakdown-item"><span>Exploitability:</span> <span id="exploitability-value"></span></div>
+                    <div class="breakdown-item"><span>Complexity:</span> <span id="complexity-value"></span></div>
+                    <div class="breakdown-item"><span>Vulnerable system:</span> <span id="vulnerable-system-value"></span></div>
+                    <div class="breakdown-item"><span>Subsequent system:</span> <span id="subsequent-system-value"></span></div>
+                    <div class="breakdown-item"><span>Exploitation:</span> <span id="exploitation-value"></span></div>
+                    <div class="breakdown-item"><span>Security requirements:</span> <span id="security-requirements-value"></span></div>
+                </div>
+            </details>
+
+            <main>
+                <details id="base-metrics-accordion" open>
+                    <summary data-tooltip="Base metrics are provided by the vulnerability supplier (e.g., software vendor).">Base Metrics</summary>
+                    <div class="metrics-grid">
+                        <h4 class="metric-group-heading">Exploitability Metrics</h4>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric reflects the context by which vulnerability exploitation is possible."><span class="metric-code">AV</span> Attack Vector</span><div class="metric-buttons" data-metric="AV"><button class="metric-btn" data-value="N" data-tooltip="The vulnerable component is bound to the network stack and the attacker's path is through OSI Layer 3 (the network layer).">Network</button><button class="metric-btn" data-value="A" data-tooltip="The vulnerable component is bound to the network stack, but the attack is limited at the protocol level to a logically adjacent topology.">Adjacent</button><button class="metric-btn" data-value="L" data-tooltip="The vulnerable component is not bound to the network stack and the attacker's path is via read/write/execute capabilities.">Local</button><button class="metric-btn" data-value="P" data-tooltip="The attacker must physically touch or manipulate the vulnerable component.">Physical</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the difficulty of exploitation, once an attacker has gained access to the target."><span class="metric-code">AC</span> Attack Complexity</span><div class="metric-buttons" data-metric="AC"><button class="metric-btn" data-value="L" data-tooltip="Specialized access conditions or extenuating circumstances do not exist.">Low</button><button class="metric-btn" data-value="H" data-tooltip="A successful attack depends on conditions beyond the attacker's control.">High</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the prerequisite conditions for an attack."><span class="metric-code">AT</span> Attack Requirements</span><div class="metric-buttons" data-metric="AT"><button class="metric-btn" data-value="N" data-tooltip="The attack can be carried out at any time.">None</button><button class="metric-btn" data-value="P" data-tooltip="The attack requires a specific state or condition of the target system that is not consistently present.">Present</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric describes the level of privileges an attacker must possess before successfully exploiting the vulnerability."><span class="metric-code">PR</span> Privileges Required</span><div class="metric-buttons" data-metric="PR"><button class="metric-btn" data-value="N" data-tooltip="The attacker is unauthorized prior to attack, and therefore does not require any access to settings or files of the vulnerable system to carry out an attack.">None</button><button class="metric-btn" data-value="L" data-tooltip="The attacker requires privileges that provide basic user capabilities that could normally affect only settings and files owned by a user.">Low</button><button class="metric-btn" data-value="H" data-tooltip="The attacker requires privileges that provide significant (e.g., administrative) control over the vulnerable component.">High</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the requirement for a human user, other than the attacker, to participate in the successful compromise of the vulnerable component."><span class="metric-code">UI</span> User Interaction</span><div class="metric-buttons" data-metric="UI"><button class="metric-btn" data-value="N" data-tooltip="The vulnerable system can be exploited without interaction from any human user.">None</button><button class="metric-btn" data-value="P" data-tooltip="Successful exploitation of this vulnerability requires limited interaction by the user.">Passive</button><button class="metric-btn" data-value="A" data-tooltip="Successful exploitation of this vulnerability requires that the user perform specific, conscious interactions.">Active</button></div></div>
+                        
+                        <h4 class="metric-group-heading">Vulnerable System Impact Metrics</h4>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the confidentiality of the information resources managed by a software component due to a successfully exploited vulnerability."><span class="metric-code">VC</span> Confidentiality</span><div class="metric-buttons" data-metric="VC"><button class="metric-btn" data-value="H" data-tooltip="There is a total loss of confidentiality, resulting in all information within the impacted component being divulged to the attacker.">High</button><button class="metric-btn" data-value="L" data-tooltip="There is some loss of confidentiality.">Low</button><button class="metric-btn" data-value="N" data-tooltip="There is no loss of confidentiality within the impacted component.">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to integrity of a successfully exploited vulnerability."><span class="metric-code">VI</span> Integrity</span><div class="metric-buttons" data-metric="VI"><button class="metric-btn" data-value="H" data-tooltip="There is a total loss of integrity, or a complete loss of protection.">High</button><button class="metric-btn" data-value="L" data-tooltip="There is a partial loss of integrity.">Low</button><button class="metric-btn" data-value="N" data-tooltip="There is no loss of integrity within the impacted component.">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the availability of the impacted component resulting from a successfully exploited vulnerability."><span class="metric-code">VA</span> Availability</span><div class="metric-buttons" data-metric="VA"><button class="metric-btn" data-value="H" data-tooltip="There is a total loss of availability, resulting in the attacker being able to fully deny access to resources in the impacted component.">High</button><button class="metric-btn" data-value="L" data-tooltip="There is a partial loss of availability.">Low</button><button class="metric-btn" data-value="N" data-tooltip="There is no impact to availability within the impacted component.">None</button></div></div>
+
+                        <h4 class="metric-group-heading">Subsequent System Impact Metrics</h4>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the confidentiality of the information resources managed by a software component due to a successfully exploited vulnerability."><span class="metric-code">SC</span> Confidentiality</span><div class="metric-buttons" data-metric="SC"><button class="metric-btn" data-value="H" data-tooltip="There is a total loss of confidentiality, resulting in all information within the impacted component being divulged to the attacker.">High</button><button class="metric-btn" data-value="L" data-tooltip="There is some loss of confidentiality.">Low</button><button class="metric-btn" data-value="N" data-tooltip="There is no loss of confidentiality within the impacted component.">None</button></div></div> 
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to integrity of a successfully exploited vulnerability."><span class="metric-code">SI</span> Integrity</span><div class="metric-buttons" data-metric="SI"><button class="metric-btn" data-value="H" data-tooltip="There is a total loss of integrity, or a complete loss of protection.">High</button><button class="metric-btn" data-value="L" data-tooltip="There is a partial loss of integrity.">Low</button><button class="metric-btn" data-value="N" data-tooltip="There is no loss of integrity within the impacted component.">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the availability of the impacted component resulting from a successfully exploited vulnerability."><span class="metric-code">SA</span> Availability</span><div class="metric-buttons" data-metric="SA"><button class="metric-btn" data-value="H" data-tooltip="There is a total loss of availability, resulting in the attacker being able to fully deny access to resources in the impacted component.">High</button><button class="metric-btn" data-value="L" data-tooltip="There is a partial loss of availability.">Low</button><button class="metric-btn" data-value="N" data-tooltip="There is no impact to availability within the impacted component.">None</button></div></div>
+                    </div>
+                </details>
+
+                <details>
+                    <summary data-tooltip="Threat metrics are provided by the vulnerability supplier or a third party.">Threat Metrics</summary>
+                    <div class="metrics-grid">
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the likelihood of the vulnerability being attacked, and is based on the current state of exploit techniques, exploit code availability, or active, 'in-the-wild' exploitation."><span class="metric-code">E</span> Exploit Maturity</span><div class="metric-buttons" data-metric="E"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="A" data-tooltip="Attacks targeting this vulnerability are widespread and indiscriminate.">Attacked</button><button class="metric-btn" data-value="P" data-tooltip="Proof-of-concept exploit code is available, or an attack demonstration is not practical for most systems.">Proof-of-Concept</button><button class="metric-btn" data-value="U" data-tooltip="No known exploits are available.">Unreported</button></div></div>
+                    </div>
+                </details>
+
+                <details>
+                    <summary data-tooltip="Environmental metrics are provided by the end-user/consumer.">Environmental (Security Requirements)</summary>
+                    <div class="metrics-grid">
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric enables the analyst to customize the CVSS score depending on the importance of the affected IT asset to the user's organization."><span class="metric-code">CR</span> Confidentiality Req.</span><div class="metric-buttons" data-metric="CR"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H" data-tooltip="Loss of confidentiality is likely to have a catastrophic adverse effect on the organization.">High</button><button class="metric-btn" data-value="M" data-tooltip="Loss of confidentiality is likely to have a serious adverse effect on the organization.">Medium</button><button class="metric-btn" data-value="L" data-tooltip="Loss of confidentiality is likely to have a limited adverse effect on the organization.">Low</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric enables the analyst to customize the CVSS score depending on the importance of the affected IT asset to the user's organization."><span class="metric-code">IR</span> Integrity Req.</span><div class="metric-buttons" data-metric="IR"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H" data-tooltip="Loss of integrity is likely to have a catastrophic adverse effect on the organization.">High</button><button class="metric-btn" data-value="M" data-tooltip="Loss of integrity is likely to have a serious adverse effect on the organization.">Medium</button><button class="metric-btn" data-value="L" data-tooltip="Loss of integrity is likely to have a limited adverse effect on the organization.">Low</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric enables the analyst to customize the CVSS score depending on the importance of the affected IT asset to the user's organization."><span class="metric-code">AR</span> Availability Req.</span><div class="metric-buttons" data-metric="AR"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H" data-tooltip="Loss of availability is likely to have a catastrophic adverse effect on the organization.">High</button><button class="metric-btn" data-value="M" data-tooltip="Loss of availability is likely to have a serious adverse effect on the organization.">Medium</button><button class="metric-btn" data-value="L" data-tooltip="Loss of availability is likely to have a limited adverse effect on the organization.">Low</button></div></div>
+                    </div>
+                </details>
+
+                <details>
+                    <summary data-tooltip="Environmental metrics are provided by the end-user/consumer.">Environmental (Modified Base Metrics)</summary>
+                    <div class="metrics-grid">
+                        <h4 class="metric-group-heading">Modified Exploitability Metrics</h4>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric reflects the context by which vulnerability exploitation is possible."><span class="metric-code">MAV</span> Modified Attack Vector</span><div class="metric-buttons" data-metric="MAV"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="N">Network</button><button class="metric-btn" data-value="A">Adjacent</button><button class="metric-btn" data-value="L">Local</button><button class="metric-btn" data-value="P">Physical</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the difficulty of exploitation, once an attacker has gained access to the target."><span class="metric-code">MAC</span> Modified Attack Complexity</span><div class="metric-buttons" data-metric="MAC"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="H">High</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the prerequisite conditions for an attack."><span class="metric-code">MAT</span> Modified Attack Requirements</span><div class="metric-buttons" data-metric="MAT"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="N">None</button><button class="metric-btn" data-value="P">Present</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric describes the level of privileges an attacker must possess before successfully exploiting the vulnerability."><span class="metric-code">MPR</span> Modified Privileges Required</span><div class="metric-buttons" data-metric="MPR"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="N">None</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="H">High</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the requirement for a human user, other than the attacker, to participate in the successful compromise of the vulnerable component."><span class="metric-code">MUI</span> Modified User Interaction</span><div class="metric-buttons" data-metric="MUI"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="N">None</button><button class="metric-btn" data-value="P">Passive</button><button class="metric-btn" data-value="A">Active</button></div></div>
+
+                        <h4 class="metric-group-heading">Modified Vulnerable System Impact Metrics</h4>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the confidentiality of the information resources managed by a software component due to a successfully exploited vulnerability."><span class="metric-code">MVC</span> Modified Confidentiality</span><div class="metric-buttons" data-metric="MVC"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H">High</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="N">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to integrity of a successfully exploited vulnerability."><span class="metric-code">MVI</span> Modified Integrity</span><div class="metric-buttons" data-metric="MVI"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H">High</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="N">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the availability of the impacted component resulting from a successfully exploited vulnerability."><span class="metric-code">MVA</span> Modified Availability</span><div class="metric-buttons" data-metric="MVA"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H">High</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="N">None</button></div></div>
+                        
+                        <h4 class="metric-group-heading">Modified Subsequent System Impact Metrics</h4>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the confidentiality of the information resources managed by a software component due to a successfully exploited vulnerability."><span class="metric-code">MSC</span> Modified Confidentiality</span><div class="metric-buttons" data-metric="MSC"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H">High</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="N">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to integrity of a successfully exploited vulnerability."><span class="metric-code">MSI</span> Modified Integrity</span><div class="metric-buttons" data-metric="MSI"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="S">Safety</button><button class="metric-btn" data-value="H">High</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="N">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the availability of the impacted component resulting from a successfully exploited vulnerability."><span class="metric-code">MSA</span> Modified Availability</span><div class="metric-buttons" data-metric="MSA"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="S">Safety</button><button class="metric-btn" data-value="H">High</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="N">None</button></div></div>
+                    </div>
+                </details>
+
+                <details>
+                    <summary data-tooltip="Supplemental metrics are provided by the end-user/consumer.">Supplemental Metrics</summary>
+                    <div class="metrics-grid">
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the impact to safety of a successfully exploited vulnerability."><span class="metric-code">S</span> Safety</span><div class="metric-buttons" data-metric="S"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="N">None</button><button class="metric-btn" data-value="P">Present</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures whether the vulnerability can be exploited without human intervention."><span class="metric-code">AU</span> Automatable</span><div class="metric-buttons" data-metric="AU"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="N">No</button><button class="metric-btn" data-value="Y">Yes</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the ability of a component to recover from an attack."><span class="metric-code">R</span> Recovery</span><div class="metric-buttons" data-metric="R"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="A">Automatic</button><button class="metric-btn" data-value="U">User</button><button class="metric-btn" data-value="I">Irrecoverable</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the value of the impacted asset."><span class="metric-code">V</span> Value Density</span><div class="metric-buttons" data-metric="V"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="D">Diffuse</button><button class="metric-btn" data-value="C">Concentrated</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the effort required to respond to a vulnerability."><span class="metric-code">RE</span> Vulnerability Response Effort</span><div class="metric-buttons" data-metric="RE"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="M">Medium</button><button class="metric-btn" data-value="H">High</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the urgency of the vulnerability."><span class="metric-code">U</span> Urgency</span><div class="metric-buttons" data-metric="U"><button class="metric-btn active" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="Clear">Clear</button><button class="metric-btn" data-value="Green">Green</button><button class="metric-btn" data-value="Amber">Amber</button><button class="metric-btn" data-value="Red">Red</button></div></div>
+                    </div>
+                </details>
+            </main>
+        </div>
     </div>
-    <div class="calculator-form" id="cvss31Form">
-      <!-- CVSS 3.1 rows unchanged -->
-      <div class="calculator-row">
-        <!-- AV -->
-        <div class="metric-group">
-          <h3>Attack Vector (AV)</h3>
-          <div class="button-group">
-            <button class="av-button" data-value="N">Network (N)</button>
-            <button class="av-button" data-value="A">Adjacent (A)</button>
-            <button class="av-button" data-value="L">Local (L)</button>
-            <button class="av-button" data-value="P">Physical (P)</button>
-          </div>
-          <input id="attackVector" type="hidden" />
+    
+    <div id="cvss3-calculator" class="calculator-container">
+         <div class="container">
+            <header class="main-header">
+                <div class="title-container">
+                    <h1>CVSS v3.1 Calculator 🧮</h1>
+                    <div class="credit-line">
+                        Made With ❤️ By <u><a href="https://secnora.com" target="_blank" rel="noopener noreferrer">SECNORA OÜ</a></u>
+                    </div>
+                </div>
+                <div class="header-content">
+                    <div class="score-display">
+                        <div class="score-entry">
+                            <span class="score-value" id="cvss3-base-score">-.-</span>
+                            <span class="score-label">Base Score</span>
+                            <span class="severity-rating" id="cvss3-base-severity">None</span>
+                        </div>
+                        <div class="score-entry">
+                            <span class="score-value" id="cvss3-temporal-score">-.-</span>
+                            <span class="score-label">Temporal Score</span>
+                            <span class="severity-rating" id="cvss3-temporal-severity">None</span>
+                        </div>
+                        <div class="score-entry">
+                            <span class="score-value" id="cvss3-environmental-score">-.-</span>
+                            <span class="score-label">Environmental Score</span>
+                            <span class="severity-rating" id="cvss3-environmental-severity">None</span>
+                        </div>
+                    </div>
+                    <div class="vector-actions">
+                        <div class="vector-string-container" id="vector-string-display-3">CVSS:3.1</div>
+                        <div class="action-buttons">
+                            <button class="action-btn" id="copy-btn-3">📋 Copy URL</button>
+                            <button class="action-btn" id="reset-btn-3">🔄 Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main>
+                <details open>
+                    <summary data-tooltip="Base metrics are provided by the vulnerability supplier (e.g., software vendor).">Base Metrics</summary>
+                    <div class="metrics-grid">
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric reflects the context by which vulnerability exploitation is possible."><span class="metric-code">AV</span> Attack Vector</span><div class="metric-buttons" data-metric3="AV"><button class="metric-btn" data-value="N" data-tooltip="The vulnerable component is bound to the network stack and the attacker's path is through OSI Layer 3 (the network layer).">Network</button><button class="metric-btn" data-value="A" data-tooltip="The vulnerable component is bound to the network stack, but the attack is limited at the protocol level to a logically adjacent topology.">Adjacent Network</button><button class="metric-btn" data-value="L" data-tooltip="The vulnerable component is not bound to the network stack and the attacker's path is via read/write/execute capabilities.">Local</button><button class="metric-btn" data-value="P" data-tooltip="The attacker must physically touch or manipulate the vulnerable component.">Physical</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric describes the conditions beyond the attacker's control that must exist in order to exploit the vulnerability."><span class="metric-code">AC</span> Attack Complexity</span><div class="metric-buttons" data-metric3="AC"><button class="metric-btn" data-value="L" data-tooltip="Specialized access conditions or extenuating circumstances do not exist.">Low</button><button class="metric-btn" data-value="H" data-tooltip="A successful attack depends on conditions beyond the attacker's control.">High</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric describes the level of privileges an attacker must possess before successfully exploiting the vulnerability."><span class="metric-code">PR</span> Privileges Required</span><div class="metric-buttons" data-metric3="PR"><button class="metric-btn" data-value="N" data-tooltip="The attacker is unauthorized prior to attack, and therefore does not require any access to settings or files of the vulnerable system to carry out an attack.">None</button><button class="metric-btn" data-value="L" data-tooltip="The attacker requires privileges that provide basic user capabilities that could normally affect only settings and files owned by a user.">Low</button><button class="metric-btn" data-value="H" data-tooltip="The attacker requires privileges that provide significant (e.g., administrative) control over the vulnerable component.">High</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the requirement for a human user, other than the attacker, to participate in the successful compromise of the vulnerable component."><span class="metric-code">UI</span> User Interaction</span><div class="metric-buttons" data-metric3="UI"><button class="metric-btn" data-value="N" data-tooltip="The vulnerable system can be exploited without interaction from any user.">None</button><button class="metric-btn" data-value="R" data-tooltip="Successful exploitation of this vulnerability requires a user to take some action before the vulnerability can be exploited.">Required</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="An exploited vulnerability can affect resources beyond the security scope of the vulnerable component."><span class="metric-code">S</span> Scope</span><div class="metric-buttons" data-metric3="S"><button class="metric-btn" data-value="U" data-tooltip="An exploited vulnerability can only affect resources managed by the same security authority.">Unchanged</button><button class="metric-btn" data-value="C" data-tooltip="An exploited vulnerability can affect resources beyond the security scope managed by the security authority of the vulnerable component.">Changed</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the confidentiality of the information resources managed by a software component due to a successfully exploited vulnerability."><span class="metric-code">C</span> Confidentiality</span><div class="metric-buttons" data-metric3="C"><button class="metric-btn" data-value="H" data-tooltip="There is a total loss of confidentiality, resulting in all information within the impacted component being divulged to the attacker.">High</button><button class="metric-btn" data-value="L" data-tooltip="There is some loss of confidentiality.">Low</button><button class="metric-btn" data-value="N" data-tooltip="There is no loss of confidentiality within the impacted component.">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to integrity of a successfully exploited vulnerability."><span class="metric-code">I</span> Integrity</span><div class="metric-buttons" data-metric3="I"><button class="metric-btn" data-value="H" data-tooltip="There is a total loss of integrity, or a complete loss of protection.">High</button><button class="metric-btn" data-value="L" data-tooltip="There is a partial loss of integrity.">Low</button><button class="metric-btn" data-value="N" data-tooltip="There is no loss of integrity within the impacted component.">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the availability of the impacted component resulting from a successfully exploited vulnerability."><span class="metric-code">A</span> Availability</span><div class="metric-buttons" data-metric3="A"><button class="metric-btn" data-value="H" data-tooltip="There is a total loss of availability, resulting in the attacker being able to fully deny access to resources in the impacted component.">High</button><button class="metric-btn" data-value="L" data-tooltip="There is a partial loss of availability.">Low</button><button class="metric-btn" data-value="N" data-tooltip="There is no impact to availability within the impacted component.">None</button></div></div>
+                    </div>
+                </details>
+                <details>
+                    <summary data-tooltip="Temporal metrics are provided by the vulnerability supplier or a third party.">Temporal Metrics</summary>
+                    <div class="metrics-grid">
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the likelihood of the vulnerability being attacked, and is based on the current state of exploit techniques, exploit code availability, or active, 'in-the-wild' exploitation."><span class="metric-code">E</span> Exploit Code Maturity</span><div class="metric-buttons" data-metric3="E"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H" data-tooltip="Functional autonomous code exists, or no exploit is required (e.g., info disclosure).">High</button><button class="metric-btn" data-value="F" data-tooltip="Functional exploit code is available.">Functional</button><button class="metric-btn" data-value="P" data-tooltip="Proof-of-concept exploit code is available.">PoC</button><button class="metric-btn" data-value="U" data-tooltip="No known exploits are available.">Unproven</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the effectiveness of a fix for the vulnerability."><span class="metric-code">RL</span> Remediation Level</span><div class="metric-buttons" data-metric3="RL"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="U" data-tooltip="There is no solution available or it is impossible to apply.">Unavailable</button><button class="metric-btn" data-value="W" data-tooltip="There is an unofficial, non-vendor solution available.">Workaround</button><button class="metric-btn" data-value="T" data-tooltip="There is an official but temporary fix available.">Temporary Fix</button><button class="metric-btn" data-value="O" data-tooltip="A complete vendor solution is available.">Official Fix</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the degree of confidence in the existence of the vulnerability and the credibility of the technical details."><span class="metric-code">RC</span> Report Confidence</span><div class="metric-buttons" data-metric3="RC"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="C" data-tooltip="The vulnerability has been confirmed by the vendor.">Confirmed</button><button class="metric-btn" data-value="R" data-tooltip="Significant details are published, but the vulnerability is not yet confirmed.">Reasonable</button><button class="metric-btn" data-value="U" data-tooltip="There are reports of the vulnerability, but they are unconfirmed.">Unknown</button></div></div>
+                    </div>
+                </details>
+                <details>
+                    <summary data-tooltip="Environmental metrics are provided by the end-user/consumer.">Environmental Metrics</summary>
+                    <div class="metrics-grid">
+                         <h4 class="metric-group-heading">Security Requirements</h4>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric enables the analyst to customize the CVSS score depending on the importance of the affected IT asset to the user's organization."><span class="metric-code">CR</span> Confidentiality</span><div class="metric-buttons" data-metric3="CR"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H" data-tooltip="Loss of confidentiality is likely to have a catastrophic adverse effect on the organization.">High</button><button class="metric-btn" data-value="M" data-tooltip="Loss of confidentiality is likely to have a serious adverse effect on the organization.">Medium</button><button class="metric-btn" data-value="L" data-tooltip="Loss of confidentiality is likely to have a limited adverse effect on the organization.">Low</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric enables the analyst to customize the CVSS score depending on the importance of the affected IT asset to the user's organization."><span class="metric-code">IR</span> Integrity</span><div class="metric-buttons" data-metric3="IR"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H" data-tooltip="Loss of integrity is likely to have a catastrophic adverse effect on the organization.">High</button><button class="metric-btn" data-value="M" data-tooltip="Loss of integrity is likely to have a serious adverse effect on the organization.">Medium</button><button class="metric-btn" data-value="L" data-tooltip="Loss of integrity is likely to have a limited adverse effect on the organization.">Low</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric enables the analyst to customize the CVSS score depending on the importance of the affected IT asset to the user's organization."><span class="metric-code">AR</span> Availability</span><div class="metric-buttons" data-metric3="AR"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H" data-tooltip="Loss of availability is likely to have a catastrophic adverse effect on the organization.">High</button><button class="metric-btn" data-value="M" data-tooltip="Loss of availability is likely to have a serious adverse effect on the organization.">Medium</button><button class="metric-btn" data-value="L" data-tooltip="Loss of availability is likely to have a limited adverse effect on the organization.">Low</button></div></div>
+                        <h4 class="metric-group-heading">Modified Base Metrics</h4>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric reflects the context by which vulnerability exploitation is possible."><span class="metric-code">MAV</span> Modified Attack Vector</span><div class="metric-buttons" data-metric3="MAV"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="N">Network</button><button class="metric-btn" data-value="A">Adjacent</button><button class="metric-btn" data-value="L">Local</button><button class="metric-btn" data-value="P">Physical</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric describes the conditions beyond the attacker's control that must exist in order to exploit the vulnerability."><span class="metric-code">MAC</span> Modified Attack Complexity</span><div class="metric-buttons" data-metric3="MAC"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="H">High</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric describes the level of privileges an attacker must possess before successfully exploiting the vulnerability."><span class="metric-code">MPR</span> Modified Privileges Required</span><div class="metric-buttons" data-metric3="MPR"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="N">None</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="H">High</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric captures the requirement for a human user, other than the attacker, to participate in the successful compromise of the vulnerable component."><span class="metric-code">MUI</span> Modified User Interaction</span><div class="metric-buttons" data-metric3="MUI"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="N">None</button><button class="metric-btn" data-value="R">Required</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="An exploited vulnerability can affect resources beyond the security scope of the vulnerable component."><span class="metric-code">MS</span> Modified Scope</span><div class="metric-buttons" data-metric3="MS"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="U">Unchanged</button><button class="metric-btn" data-value="C">Changed</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the confidentiality of the information resources managed by a software component due to a successfully exploited vulnerability."><span class="metric-code">MC</span> Modified Confidentiality</span><div class="metric-buttons" data-metric3="MC"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H">High</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="N">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to integrity of a successfully exploited vulnerability."><span class="metric-code">MI</span> Modified Integrity</span><div class="metric-buttons" data-metric3="MI"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H">High</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="N">None</button></div></div>
+                        <div class="metric-group"><span class="metric-label" data-tooltip="This metric measures the impact to the availability of the impacted component resulting from a successfully exploited vulnerability."><span class="metric-code">MA</span> Modified Availability</span><div class="metric-buttons" data-metric3="MA"><button class="metric-btn" data-value="X" data-tooltip="The default value.">Not Defined</button><button class="metric-btn" data-value="H">High</button><button class="metric-btn" data-value="L">Low</button><button class="metric-btn" data-value="N">None</button></div></div>
+                    </div>
+                </details>
+            </main>
         </div>
-        <!-- AC -->
-        <div class="metric-group">
-          <h3>Attack Complexity (AC)</h3>
-          <div class="button-group">
-            <button class="ac-button" data-value="L">Low (L)</button>
-            <button class="ac-button" data-value="H">High (H)</button>
-          </div>
-          <input id="attackComplexity" type="hidden" />
-        </div>
-        <!-- PR -->
-        <div class="metric-group">
-          <h3>Privileges Required (PR)</h3>
-          <div class="button-group">
-            <button class="pr-button" data-value="N">None (N)</button>
-            <button class="pr-button" data-value="L">Low (L)</button>
-            <button class="pr-button" data-value="H">High (H)</button>
-          </div>
-          <input id="privilegesRequired" type="hidden" />
-        </div>
-        <!-- UI -->
-        <div class="metric-group">
-          <h3>User Interaction (UI)</h3>
-          <div class="button-group">
-            <button class="ui-button" data-value="N">None (N)</button>
-            <button class="ui-button" data-value="R">Required (R)</button>
-          </div>
-          <input id="userInteraction" type="hidden" />
-        </div>
-      </div>
-      <div class="calculator-row">
-        <!-- S -->
-        <div class="metric-group">
-          <h3>Scope (S)</h3>
-          <div class="button-group">
-            <button class="s-button" data-value="U">Unchanged (U)</button>
-            <button class="s-button" data-value="C">Changed (C)</button>
-          </div>
-          <input id="scope" type="hidden" />
-        </div>
-        <!-- C -->
-        <div class="metric-group">
-          <h3>Confidentiality (C)</h3>
-          <div class="button-group">
-            <button class="c-button" data-value="H">High (H)</button>
-            <button class="c-button" data-value="L">Low (L)</button>
-            <button class="c-button" data-value="N">None (N)</button>
-          </div>
-          <input id="confidentialityImpact" type="hidden" />
-        </div>
-        <!-- I -->
-        <div class="metric-group">
-          <h3>Integrity (I)</h3>
-          <div class="button-group">
-            <button class="i-button" data-value="H">High (H)</button>
-            <button class="i-button" data-value="L">Low (L)</button>
-            <button class="i-button" data-value="N">None (N)</button>
-          </div>
-          <input id="integrityImpact" type="hidden" />
-        </div>
-        <!-- A -->
-        <div class="metric-group">
-          <h3>Availability (A)</h3>
-          <div class="button-group">
-            <button class="a-button" data-value="H">High (H)</button>
-            <button class="a-button" data-value="L">Low (L)</button>
-            <button class="a-button" data-value="N">None (N)</button>
-          </div>
-          <input id="availabilityImpact" type="hidden" />
-        </div>
-      </div>
-      <div class="results" id="results" style="display:none;">
-        <div class="score-display" id="scoreDisplay"></div>
-        <div class="vector-string" id="vectorString"></div>
-      </div>
     </div>
-  </div>
-  <div id="tooltip"></div>
-  <button id="cvss4Btn">CVSS 4.0</button>
-  <button id="themeToggleBtn">💡</button>
-  <script>
-    const metrics = {
-      AV: { N: 0.85, A: 0.62, L: 0.55, P: 0.2 },
-      AC: { L: 0.77, H: 0.44 },
-      PR: { N: 0.85, L: { U: 0.62, C: 0.68 }, H: { U: 0.27, C: 0.5 } },
-      UI: { N: 0.85, R: 0.62 },
-      CIA: { H: 0.56, L: 0.22, N: 0 }
+    
+    <div class="fab-container">
+        <button id="calculator-switch" class="fab" data-tooltip="Switch Calculator Version"></button>
+        <button id="theme-toggle" class="fab" data-tooltip="Toggle Theme">💡</button>
+    </div>
+
+    <p class="disclaimer">
+        ℹ️ <strong>Note:</strong> Scores are calculated using the official CVSS algorithm scripts from FIRST.org. For verification, you can use the generated vector string with the official calculators.
+    </p>
+
+    <script>
+    // CVSS v4.0 LOGIC
+    // Copyright FIRST, Red Hat, and contributors
+    // SPDX-License-Identifier: BSD-2-Clause
+    function roundToDecimalPlaces(value) { const EPSILON = Math.pow(10, -6); return Math.round((value + EPSILON) * 10) / 10; }
+    class Vector {
+        static METRICS = { BASE: { "AV": ["N", "A", "L", "P"], "AC": ["L", "H"], "AT": ["N", "P"], "PR": ["N", "L", "H"], "UI": ["N", "P", "A"], "VC": ["H", "L", "N"], "VI": ["H", "L", "N"], "VA": ["H", "L", "N"], "SC": ["H", "L", "N"], "SI": ["H", "L", "N"], "SA": ["H", "L", "N"] }, THREAT: { "E": ["X", "A", "P", "U"] }, ENVIRONMENTAL: { "CR": ["X", "H", "M", "L"], "IR": ["X", "H", "M", "L"], "AR": ["X", "H", "M", "L"], "MAV": ["X", "N", "A", "L", "P"], "MAC": ["X", "L", "H"], "MAT": ["X", "N", "P"], "MPR": ["X", "N", "L", "H"], "MUI": ["X", "N", "P", "A"], "MVC": ["X", "H", "L", "N"], "MVI": ["X", "H", "L", "N"], "MVA": ["X", "H", "L", "N"], "MSC": ["X", "H", "L", "N"], "MSI": ["X", "S", "H", "L", "N"], "MSA": ["X", "S", "H", "L", "N"], }, SUPPLEMENTAL: { "S": ["X", "N", "P"], "AU": ["X", "N", "Y"], "R": ["X", "A", "U", "I"], "V": ["X", "D", "C"], "RE": ["X", "L", "M", "H"], "U": ["X", "Clear", "Green", "Amber", "Red"], } };
+        static ALL_METRICS = Object.keys(Vector.METRICS).reduce((order, category) => ({ ...order, ...Vector.METRICS[category] }), {});
+        static BASE_NOMENCLATURE = "CVSS-B";
+        constructor(vectorString = "") { const selected = {}; for (let category in Vector.METRICS) { for (let key in Vector.METRICS[category]) { selected[key] = Vector.METRICS[category][key][0]; } } this.metrics = selected; if (vectorString) { if (vectorString.startsWith('#')) { vectorString = vectorString.slice(1); } this.updateMetricsFromVectorString(vectorString); } }
+        get raw() { const baseString = "CVSS:4.0"; const metricEntries = Object.entries(this.metrics).filter(([, value]) => value !== "X" && value !== null).map(([key, value]) => `/${key}:${value}`).join(''); return baseString + metricEntries; }
+        get equivalentClasses() { const computeEQ1 = () => { const AV = this.getEffectiveMetricValue("AV"); const PR = this.getEffectiveMetricValue("PR"); const UI = this.getEffectiveMetricValue("UI"); if (AV === "N" && PR === "N" && UI === "N") { return "0"; } if ((AV === "N" || PR === "N" || UI === "N") && !(AV === "N" && PR === "N" && UI === "N") && AV !== "P") { return "1"; } if (AV === "P" || !(AV === "N" || PR === "N" || UI === "N")) { return "2"; } }; const computeEQ2 = () => { const AC = this.getEffectiveMetricValue("AC"); const AT = this.getEffectiveMetricValue("AT"); return (AC === "L" && AT === "N") ? "0" : "1"; }; const computeEQ3 = () => { const VC = this.getEffectiveMetricValue("VC"); const VI = this.getEffectiveMetricValue("VI"); const VA = this.getEffectiveMetricValue("VA"); if (VC === "H" && VI === "H") { return "0"; } if (!(VC === "H" && VI === "H") && (VC === "H" || VI === "H" || VA === "H")) { return "1"; } if (!(VC === "H" || VI === "H" || VA === "H")) { return "2"; } }; const computeEQ4 = () => { const MSI = this.getEffectiveMetricValue("MSI"); const MSA = this.getEffectiveMetricValue("MSA"); const SC = this.getEffectiveMetricValue("SC"); const SI = this.getEffectiveMetricValue("SI"); const SA = this.getEffectiveMetricValue("SA"); if (MSI === "S" || MSA === "S") { return "0"; } if (!(MSI === "S" || MSA === "S") && (SC === "H" || SI === "H" || SA === "H")) { return "1"; } return "2"; }; const computeEQ5 = () => { const E = this.getEffectiveMetricValue("E"); if (E === "A") return "0"; if (E === "P") return "1"; if (E === "U") return "2"; }; const computeEQ6 = () => { const CR = this.getEffectiveMetricValue("CR"); const VC = this.getEffectiveMetricValue("VC"); const IR = this.getEffectiveMetricValue("IR"); const VI = this.getEffectiveMetricValue("VI"); const AR = this.getEffectiveMetricValue("AR"); const VA = this.getEffectiveMetricValue("VA"); if ((CR === "H" && VC === "H") || (IR === "H" && VI === "H") || (AR === "H" && VA === "H")) { return "0"; } return "1"; }; const eq1 = computeEQ1(); const eq2 = computeEQ2(); const eq3 = computeEQ3(); const eq4 = computeEQ4(); const eq5 = computeEQ5(); const eq6 = computeEQ6(); return eq1 + eq2 + eq3 + eq4 + eq5 + eq6; }
+        get severityBreakdown() { const macroVector = this.equivalentClasses; const macroVectorDetails = ["Exploitability", "Complexity", "Vulnerable system", "Subsequent system", "Exploitation", "Security requirements"]; const macroVectorsWithTwoSeverities = ["Complexity", "Security requirements"]; const threeSeverities = ["High", "Medium", "Low"]; const twoSeverities = ["High", "Low"]; return Object.fromEntries(macroVectorDetails.map((description, index) => { const macroVectorValueOptions = macroVectorsWithTwoSeverities.includes(description) ? twoSeverities : threeSeverities; return [description, macroVectorValueOptions[macroVector[index]]]; })); }
+        getEffectiveMetricValue(metric) { const worstCaseDefaults = { "E": "A", "CR": "H", "IR": "H", "AR": "H" }; if (this.metrics[metric] === "X" && Object.prototype.hasOwnProperty.call(worstCaseDefaults, metric)) { return worstCaseDefaults[metric]; } const modifiedMetric = "M" + metric; if (Object.prototype.hasOwnProperty.call(this.metrics, modifiedMetric) && this.metrics[modifiedMetric] !== "X") { return this.metrics[modifiedMetric]; } return this.metrics[metric]; }
+        validateStringVector(vector) { const metrics = vector.split('/'); if (metrics.shift() !== "CVSS:4.0") { console.error("Error: invalid vector, missing CVSS v4.0 prefix from vector: " + vector); return false; } const expectedMetrics = Object.entries(Vector.ALL_METRICS); let mandatoryMetricIndex = 0; for (let metric of metrics) { const [key, value] = metric.split(':'); if (!expectedMetrics[mandatoryMetricIndex]) { console.error("Error: invalid vector, too many metric values"); return false; } while (expectedMetrics[mandatoryMetricIndex] && expectedMetrics[mandatoryMetricIndex][0] !== key) { if (mandatoryMetricIndex < 11) { console.error("Error: invalid vector, missing mandatory metrics"); return false; } mandatoryMetricIndex++; } if (!expectedMetrics[mandatoryMetricIndex][1].includes(value)) { console.error(`Error: invalid vector, for key ${key}, value ${value} is not in ${expectedMetrics[mandatoryMetricIndex][1]}`); return false; } mandatoryMetricIndex++; } return true; }
+        updateMetricsFromVectorString(vector) { if (!vector) { throw new Error("The vector string cannot be null, undefined, or empty."); } if (!this.validateStringVector(vector)) { throw new Error("Invalid CVSS v4.0 vector: " + vector); } let metrics = vector.split('/'); metrics.shift(); for (let metric of metrics) { let [key, value] = metric.split(':'); this.metrics[key] = value; } }
+        updateMetric(metric, value) { if (Object.prototype.hasOwnProperty.call(this.metrics, metric)) { this.metrics[metric] = value; } else { console.error(`Metric ${metric} not found.`); } }
+    }
+    class CVSS40 {
+        static LOOKUP_TABLE = { "000000": 10, "000001": 9.9, "000010": 9.8, "000011": 9.5, "000020": 9.5, "000021": 9.2, "000100": 10, "000101": 9.6, "000110": 9.3, "000111": 8.7, "000120": 9.1, "000121": 8.1, "000200": 9.3, "000201": 9, "000210": 8.9, "000211": 8, "000220": 8.1, "000221": 6.8, "001000": 9.8, "001001": 9.5, "001010": 9.5, "001011": 9.2, "001020": 9, "001021": 8.4, "001100": 9.3, "001101": 9.2, "001110": 8.9, "001111": 8.1, "001120": 8.1, "001121": 6.5, "001200": 8.8, "001201": 8, "001210": 7.8, "001211": 7, "001220": 6.9, "001221": 4.8, "002001": 9.2, "002011": 8.2, "002021": 7.2, "002101": 7.9, "002111": 6.9, "002121": 5, "002201": 6.9, "002211": 5.5, "002221": 2.7, "010000": 9.9, "010001": 9.7, "010010": 9.5, "010011": 9.2, "010020": 9.2, "010021": 8.5, "010100": 9.5, "010101": 9.1, "010110": 9, "010111": 8.3, "010120": 8.4, "010121": 7.1, "010200": 9.2, "010201": 8.1, "010210": 8.2, "010211": 7.1, "010220": 7.2, "010221": 5.3, "011000": 9.5, "011001": 9.3, "011010": 9.2, "011011": 8.5, "011020": 8.5, "011021": 7.3, "011100": 9.2, "011101": 8.2, "011110": 8, "011111": 7.2, "011120": 7, "011121": 5.9, "011200": 8.4, "011201": 7, "011210": 7.1, "011211": 5.2, "011220": 5, "011221": 3, "012001": 8.6, "012011": 7.5, "012021": 5.2, "012101": 7.1, "012111": 5.2, "012121": 2.9, "012201": 6.3, "012211": 2.9, "012221": 1.7, "100000": 9.8, "100001": 9.5, "100010": 9.4, "100011": 8.7, "100020": 9.1, "100021": 8.1, "100100": 9.4, "100101": 8.9, "100110": 8.6, "100111": 7.4, "100120": 7.7, "100121": 6.4, "100200": 8.7, "100201": 7.5, "100210": 7.4, "100211": 6.3, "100220": 6.3, "100221": 4.9, "101000": 9.4, "101001": 8.9, "101010": 8.8, "101011": 7.7, "101020": 7.6, "101021": 6.7, "101100": 8.6, "101101": 7.6, "101110": 7.4, "101111": 5.8, "101120": 5.9, "101121": 5, "101200": 7.2, "101201": 5.7, "101210": 5.7, "101211": 5.2, "101220": 5.2, "101221": 2.5, "102001": 8.3, "102011": 7, "102021": 5.4, "102101": 6.5, "102111": 5.8, "102121": 2.6, "102201": 5.3, "102211": 2.1, "102221": 1.3, "110000": 9.5, "110001": 9, "110010": 8.8, "110011": 7.6, "110020": 7.6, "110021": 7, "110100": 9, "110101": 7.7, "110110": 7.5, "110111": 6.2, "110120": 6.1, "110121": 5.3, "110200": 7.7, "110201": 6.6, "110210": 6.8, "110211": 5.9, "110220": 5.2, "110221": 3, "111000": 8.9, "111001": 7.8, "111010": 7.6, "111011": 6.7, "111020": 6.2, "111021": 5.8, "111100": 7.4, "111101": 5.9, "111110": 5.7, "111111": 5.7, "111120": 4.7, "111121": 2.3, "111200": 6.1, "111201": 5.2, "111210": 5.7, "111211": 2.9, "111220": 2.4, "111221": 1.6, "112001": 7.1, "112011": 5.9, "112021": 3, "112101": 5.8, "112111": 2.6, "112121": 1.5, "112201": 2.3, "112211": 1.3, "112221": 0.6, "200000": 9.3, "200001": 8.7, "200010": 8.6, "200011": 7.2, "200020": 7.5, "200021": 5.8, "200100": 8.6, "200101": 7.4, "200110": 7.4, "200111": 6.1, "200120": 5.6, "200121": 3.4, "200200": 7, "200201": 5.4, "200210": 5.2, "200211": 4, "200220": 4, "200221": 2.2, "201000": 8.5, "201001": 7.5, "201010": 7.4, "201011": 5.5, "201020": 6.2, "201021": 5.1, "201100": 7.2, "201101": 5.7, "201110": 5.5, "201111": 4.1, "201120": 4.6, "201121": 1.9, "201200": 5.3, "201201": 3.6, "201210": 3.4, "201211": 1.9, "201220": 1.9, "201221": 0.8, "202001": 6.4, "202011": 5.1, "202021": 2, "202101": 4.7, "202111": 2.1, "202121": 1.1, "202201": 2.4, "202211": 0.9, "202221": 0.4, "210000": 8.8, "210001": 7.5, "210010": 7.3, "210011": 5.3, "210020": 6, "210021": 5, "210100": 7.3, "210101": 5.5, "210110": 5.9, "210111": 4, "210120": 4.1, "210121": 2, "210200": 5.4, "210201": 4.3, "210210": 4.5, "210211": 2.2, "210220": 2, "210221": 1.1, "211000": 7.5, "211001": 5.5, "211010": 5.8, "211011": 4.5, "211020": 4, "211021": 2.1, "211100": 6.1, "211101": 5.1, "211110": 4.8, "211111": 1.8, "211120": 2, "211121": 0.9, "211200": 4.6, "211201": 1.8, "211210": 1.7, "211211": 0.7, "211220": 0.8, "211221": 0.2, "212001": 5.3, "212011": 2.4, "212021": 1.4, "212101": 2.4, "212111": 1.2, "212121": 0.5, "212201": 1, "212211": 0.3, "212221": 0.1 };
+        static METRIC_LEVELS = { "AV": { "N": 0, "A": 0.1, "L": 0.2, "P": 0.3 }, "PR": { "N": 0, "L": 0.1, "H": 0.2 }, "UI": { "N": 0, "P": 0.1, "A": 0.2 }, "AC": { 'L': 0, 'H': 0.1 }, "AT": { 'N': 0, 'P': 0.1 }, "VC": { 'H': 0, 'L': 0.1, 'N': 0.2 }, "VI": { 'H': 0, 'L': 0.1, 'N': 0.2 }, "VA": { 'H': 0, 'L': 0.1, 'N': 0.2 }, "SC": { 'H': 0.1, 'L': 0.2, 'N': 0.3 }, "SI": { 'S': 0, 'H': 0.1, 'L': 0.2, 'N': 0.3 }, "SA": { 'S': 0, 'H': 0.1, 'L': 0.2, 'N': 0.3 }, "CR": { 'H': 0, 'M': 0.1, 'L': 0.2 }, "IR": { 'H': 0, 'M': 0.1, 'L': 0.2 }, "AR": { 'H': 0, 'M': 0.1, 'L': 0.2 }, "E": { 'U': 0.2, 'P': 0.1, 'A': 0 } };
+        static MAX_COMPOSED = { "eq1": { 0: ["AV:N/PR:N/UI:N/"], 1: ["AV:A/PR:N/UI:N/", "AV:N/PR:L/UI:N/", "AV:N/PR:N/UI:P/"], 2: ["AV:P/PR:N/UI:N/", "AV:A/PR:L/UI:P/"] }, "eq2": { 0: ["AC:L/AT:N/"], 1: ["AC:H/AT:N/", "AC:L/AT:P/"] }, "eq3": { 0: { "0": ["VC:H/VI:H/VA:H/CR:H/IR:H/AR:H/"], "1": ["VC:H/VI:H/VA:L/CR:M/IR:M/AR:H/", "VC:H/VI:H/VA:H/CR:M/IR:M/AR:M/"] }, 1: { "0": ["VC:L/VI:H/VA:H/CR:H/IR:H/AR:H/", "VC:H/VI:L/VA:H/CR:H/IR:H/AR:H/"], "1": ["VC:L/VI:H/VA:L/CR:H/IR:M/AR:H/", "VC:L/VI:H/VA:H/CR:H/IR:M/AR:M/", "VC:H/VI:L/VA:H/CR:M/IR:H/AR:M/", "VC:H/VI:L/VA:L/CR:M/IR:H/AR:H/", "VC:L/VI:L/VA:H/CR:H/IR:H/AR:M/"] }, 2: { "1": ["VC:L/VI:L/VA:L/CR:H/IR:H/AR:H/"] }, }, "eq4": { 0: ["SC:H/SI:S/SA:S/"], 1: ["SC:H/SI:H/SA:H/"], 2: ["SC:L/SI:L/SA:L/"] }, "eq5": { 0: ["E:A/"], 1: ["E:P/"], 2: ["E:U/"], }, };
+        static MAX_SEVERITY = { "eq1": { 0: 1, 1: 4, 2: 5 }, "eq2": { 0: 1, 1: 2 }, "eq3eq6": { 0: { 0: 7, 1: 6 }, 1: { 0: 8, 1: 8 }, 2: { 1: 10 } }, "eq4": { 0: 6, 1: 5, 2: 4 }, "eq5": { 0: 1, 1: 1, 2: 1 }, };
+        constructor(input = "") { if (input instanceof Vector) { this.vector = input; } else if (typeof input === 'string') { this.vector = new Vector(input); } else { throw new Error(`Invalid input type for CVSSv4.0 constructor. Expected a string or a Vector object in ${this.vector}`); } this.score = this.calculateScore(); this.severity = this.calculateSeverityRating(this.score); }
+        calculateSeverityRating(score) { if (score === 0.0) { return "None"; } else if (score >= 0.1 && score <= 3.9) { return "Low"; } else if (score >= 4.0 && score <= 6.9) { return "Medium"; } else if (score >= 7.0 && score <= 8.9) { return "High"; } else if (score >= 9.0 && score <= 10.0) { return "Critical"; } return "Unknown"; }
+        calculateSeverityDistances(maxVector) { const distances = {}; for (const metric in CVSS40.METRIC_LEVELS) { const effectiveMetricValue = this.vector.getEffectiveMetricValue(metric); const extractedMetricValue = this.extractValueMetric(metric, maxVector); distances[metric] = CVSS40.METRIC_LEVELS[metric][effectiveMetricValue] - CVSS40.METRIC_LEVELS[metric][extractedMetricValue]; } return distances; }
+        calculateScore() { const NO_IMPACT_METRICS = ["VC", "VI", "VA", "SC", "SI", "SA"]; const STEP = 0.1; if (NO_IMPACT_METRICS.every((metric) => this.vector.getEffectiveMetricValue(metric) === "N")) { return 0.0; } const equivalentClasses = this.vector.equivalentClasses; let value = CVSS40.LOOKUP_TABLE[equivalentClasses]; const [eq1, eq2, eq3, eq4, eq5, eq6] = equivalentClasses.split('').map(Number); const eq1_next_lower_macro = `${eq1 + 1}${eq2}${eq3}${eq4}${eq5}${eq6}`; const eq2_next_lower_macro = `${eq1}${eq2 + 1}${eq3}${eq4}${eq5}${eq6}`; let eq3eq6_next_lower_macro, eq3eq6_next_lower_macro_left, eq3eq6_next_lower_macro_right; if (eq3 === 1 && eq6 === 1) { eq3eq6_next_lower_macro = `${eq1}${eq2}${eq3 + 1}${eq4}${eq5}${eq6}`; } else if (eq3 === 0 && eq6 === 1) { eq3eq6_next_lower_macro = `${eq1}${eq2}${eq3 + 1}${eq4}${eq5}${eq6}`; } else if (eq3 === 1 && eq6 === 0) { eq3eq6_next_lower_macro = `${eq1}${eq2}${eq3}${eq4}${eq5}${eq6 + 1}`; } else if (eq3 === 0 && eq6 === 0) { eq3eq6_next_lower_macro_left = `${eq1}${eq2}${eq3}${eq4}${eq5}${eq6 + 1}`; eq3eq6_next_lower_macro_right = `${eq1}${eq2}${eq3 + 1}${eq4}${eq5}${eq6}`; } else { eq3eq6_next_lower_macro = `${eq1}${eq2}${eq3 + 1}${eq4}${eq5}${eq6 + 1}`; } const eq4_next_lower_macro = `${eq1}${eq2}${eq3}${eq4 + 1}${eq5}${eq6}`; const eq5_next_lower_macro = `${eq1}${eq2}${eq3}${eq4}${eq5 + 1}${eq6}`; const score_eq1_next_lower_macro = CVSS40.LOOKUP_TABLE[eq1_next_lower_macro]; const score_eq2_next_lower_macro = CVSS40.LOOKUP_TABLE[eq2_next_lower_macro]; let score_eq3eq6_next_lower_macro; if (eq3 == 0 && eq6 == 0) { const score_eq3eq6_next_lower_macro_left = CVSS40.LOOKUP_TABLE[eq3eq6_next_lower_macro_left]; const score_eq3eq6_next_lower_macro_right = CVSS40.LOOKUP_TABLE[eq3eq6_next_lower_macro_right]; score_eq3eq6_next_lower_macro = Math.max(score_eq3eq6_next_lower_macro_left, score_eq3eq6_next_lower_macro_right); } else { score_eq3eq6_next_lower_macro = CVSS40.LOOKUP_TABLE[eq3eq6_next_lower_macro]; } const score_eq4_next_lower_macro = CVSS40.LOOKUP_TABLE[eq4_next_lower_macro]; const score_eq5_next_lower_macro = CVSS40.LOOKUP_TABLE[eq5_next_lower_macro]; const eqMaxes = [this.getMaxSeverityVectorsForEQ(equivalentClasses, 1), this.getMaxSeverityVectorsForEQ(equivalentClasses, 2), this.getMaxSeverityVectorsForEQ(equivalentClasses, 3)[eq6], this.getMaxSeverityVectorsForEQ(equivalentClasses, 4), this.getMaxSeverityVectorsForEQ(equivalentClasses, 5)]; const maxVectors = []; for (const eq1Max of eqMaxes[0]) { for (const eq2Max of eqMaxes[1]) { for (const eq3Max of eqMaxes[2]) { for (const eq4Max of eqMaxes[3]) { for (const eq5Max of eqMaxes[4]) { maxVectors.push(eq1Max + eq2Max + eq3Max + eq4Max + eq5Max); } } } } } let maxVector, distances; for (const vector of maxVectors) { distances = this.calculateSeverityDistances(vector); if (Object.values(distances).every(distance => distance >= 0)) { maxVector = vector; break; } } const current_severity_distance_eq1 = distances["AV"] + distances["PR"] + distances["UI"]; const current_severity_distance_eq2 = distances["AC"] + distances["AT"]; const current_severity_distance_eq3eq6 = distances["VC"] + distances["VI"] + distances["VA"] + distances["CR"] + distances["IR"] + distances["AR"]; const current_severity_distance_eq4 = distances["SC"] + distances["SI"] + distances["SA"]; const available_distance_eq1 = value - score_eq1_next_lower_macro; const available_distance_eq2 = value - score_eq2_next_lower_macro; const available_distance_eq3eq6 = value - score_eq3eq6_next_lower_macro; const available_distance_eq4 = value - score_eq4_next_lower_macro; const available_distance_eq5 = value - score_eq5_next_lower_macro; let percent_to_next_eq1_severity = 0, percent_to_next_eq2_severity = 0, percent_to_next_eq3eq6_severity = 0, percent_to_next_eq4_severity = 0, percent_to_next_eq5_severity = 0; let n_existing_lower = 0; let normalized_severity_eq1 = 0, normalized_severity_eq2 = 0, normalized_severity_eq3eq6 = 0, normalized_severity_eq4 = 0, normalized_severity_eq5 = 0; const maxSeverity_eq1 = CVSS40.MAX_SEVERITY["eq1"][eq1] * STEP; const maxSeverity_eq2 = CVSS40.MAX_SEVERITY["eq2"][eq2] * STEP; const maxSeverity_eq3eq6 = CVSS40.MAX_SEVERITY["eq3eq6"][eq3][eq6] * STEP; const maxSeverity_eq4 = CVSS40.MAX_SEVERITY["eq4"][eq4] * STEP; if (!isNaN(available_distance_eq1)) { n_existing_lower = n_existing_lower + 1; percent_to_next_eq1_severity = (current_severity_distance_eq1) / maxSeverity_eq1; normalized_severity_eq1 = available_distance_eq1 * percent_to_next_eq1_severity; } if (!isNaN(available_distance_eq2)) { n_existing_lower = n_existing_lower + 1; percent_to_next_eq2_severity = (current_severity_distance_eq2) / maxSeverity_eq2; normalized_severity_eq2 = available_distance_eq2 * percent_to_next_eq2_severity; } if (!isNaN(available_distance_eq3eq6)) { n_existing_lower = n_existing_lower + 1; percent_to_next_eq3eq6_severity = (current_severity_distance_eq3eq6) / maxSeverity_eq3eq6; normalized_severity_eq3eq6 = available_distance_eq3eq6 * percent_to_next_eq3eq6_severity; } if (!isNaN(available_distance_eq4)) { n_existing_lower = n_existing_lower + 1; percent_to_next_eq4_severity = (current_severity_distance_eq4) / maxSeverity_eq4; normalized_severity_eq4 = available_distance_eq4 * percent_to_next_eq4_severity; } if (!isNaN(available_distance_eq5)) { n_existing_lower = n_existing_lower + 1; percent_to_next_eq5_severity = 0; normalized_severity_eq5 = available_distance_eq5 * percent_to_next_eq5_severity; } let meanDistance; if (n_existing_lower == 0) { meanDistance = 0; } else { meanDistance = (normalized_severity_eq1 + normalized_severity_eq2 + normalized_severity_eq3eq6 + normalized_severity_eq4 + normalized_severity_eq5) / n_existing_lower; } return roundToDecimalPlaces(Math.max(0, Math.min(10, value - meanDistance)), 1); }
+        getMaxSeverityVectorsForEQ(macroVector, eqNumber) { return CVSS40.MAX_COMPOSED["eq" + eqNumber][macroVector[eqNumber - 1]]; }
+        extractValueMetric(metric, str) { const metricIndex = str.indexOf(metric) + metric.length + 1; const extracted = str.slice(metricIndex); return extracted.indexOf('/') > 0 ? extracted.substring(0, extracted.indexOf('/')) : extracted; }
+    }
+    
+    // CVSS v3.1 LOGIC
+    // Copyright (c) 2015-2019, FIRST.org, Inc.
+    // All rights reserved.
+    const CVSS31 = {
+        Weight: {
+            AV: { N: 0.85, A: 0.62, L: 0.55, P: 0.2 },
+            AC: { H: 0.44, L: 0.77 },
+            PR: { N: 0.85, L: 0.62, H: 0.27 },
+            UI: { N: 0.85, R: 0.62 },
+            S: { U: 6.42, C: 7.52 },
+            C: { N: 0, L: 0.22, H: 0.56 },
+            I: { N: 0, L: 0.22, H: 0.56 },
+            A: { N: 0, L: 0.22, H: 0.56 },
+            E: { X: 1, H: 1, F: 0.97, P: 0.94, U: 0.91 },
+            RL: { X: 1, U: 1, W: 0.96, T: 0.95, O: 0.92 },
+            RC: { X: 1, C: 1, R: 0.96, U: 0.92 },
+            CR: { X: 1, H: 1.5, M: 1, L: 0.5 },
+            IR: { X: 1, H: 1.5, M: 1, L: 0.5 },
+            AR: { X: 1, H: 1.5, M: 1, L: 0.5 }
+        },
+        calculateScores: function(vector) {
+            const metrics = this.parseVector(vector);
+            if (!metrics) return null;
+
+            const baseScore = this.calculateBaseScore(metrics);
+            const temporalScore = this.calculateTemporalScore(baseScore, metrics);
+            const environmentalScore = this.calculateEnvironmentalScore(metrics);
+
+            return {
+                base: baseScore,
+                temporal: temporalScore,
+                environmental: environmentalScore
+            };
+        },
+        calculateBaseScore: function(m) {
+            const impactSubscore = 1 - ((1 - this.Weight.C[m.C]) * (1 - this.Weight.I[m.I]) * (1 - this.Weight.A[m.A]));
+            let impact;
+            if (m.S === 'U') {
+                impact = this.Weight.S.U * impactSubscore;
+            } else {
+                impact = (this.Weight.S.C * (impactSubscore - 0.029)) - 3.25 * Math.pow(impactSubscore - 0.02, 15);
+            }
+
+            const exploitability = 8.22 * this.Weight.AV[m.AV] * this.Weight.AC[m.AC] * this.Weight.PR[m.S === 'U' ? m.PR : this.Weight.PR[m.PR] > 0.62 ? 0.68 : m.PR] * this.Weight.UI[m.UI];
+
+            if (impact <= 0) return 0.0;
+
+            const baseScore = (m.S === 'U')
+                ? this.roundup(Math.min(impact + exploitability, 10))
+                : this.roundup(Math.min(1.08 * (impact + exploitability), 10));
+
+            return baseScore;
+        },
+        calculateTemporalScore: function(baseScore, m) {
+            return this.roundup(baseScore * this.Weight.E[m.E] * this.Weight.RL[m.RL] * this.Weight.RC[m.RC]);
+        },
+        calculateEnvironmentalScore: function(m) {
+            const modMetrics = { ...m };
+            if (m.MAV !== 'X') modMetrics.AV = m.MAV;
+            if (m.MAC !== 'X') modMetrics.AC = m.MAC;
+            if (m.MPR !== 'X') modMetrics.PR = m.MPR;
+            if (m.MUI !== 'X') modMetrics.UI = m.MUI;
+            if (m.MS !== 'X') modMetrics.S = m.MS;
+            if (m.MC !== 'X') modMetrics.C = m.MC;
+            if (m.MI !== 'X') modMetrics.I = m.MI;
+            if (m.MA !== 'X') modMetrics.A = m.MA;
+
+            const modifiedImpactSubscore = Math.min(1 - (
+                (1 - this.Weight.C[modMetrics.C] * this.Weight.CR[m.CR]) *
+                (1 - this.Weight.I[modMetrics.I] * this.Weight.IR[m.IR]) *
+                (1 - this.Weight.A[modMetrics.A] * this.Weight.AR[m.AR])
+            ), 0.915);
+            
+            let modifiedImpact;
+            if (modMetrics.S === 'U') {
+                modifiedImpact = this.Weight.S.U * modifiedImpactSubscore;
+            } else {
+                modifiedImpact = (this.Weight.S.C * (modifiedImpactSubscore - 0.029)) - 3.25 * Math.pow(modifiedImpactSubscore * 0.9731 - 0.02, 13);
+            }
+
+            const modifiedExploitability = 8.22 * this.Weight.AV[modMetrics.AV] * this.Weight.AC[modMetrics.AC] * this.Weight.PR[modMetrics.S === 'U' ? modMetrics.PR : this.Weight.PR[modMetrics.PR] > 0.62 ? 0.68 : modMetrics.PR] * this.Weight.UI[modMetrics.UI];//SECNORA
+  
+            if (modifiedImpact <= 0) return 0.0;
+
+            const envScore = (modMetrics.S === 'U')
+                ? this.roundup(this.roundup(Math.min(modifiedImpact + modifiedExploitability, 10)) * this.Weight.E[m.E] * this.Weight.RL[m.RL] * this.Weight.RC[m.RC])
+                : this.roundup(this.roundup(Math.min(1.08 * (modifiedImpact + modifiedExploitability), 10)) * this.Weight.E[m.E] * this.Weight.RL[m.RL] * this.Weight.RC[m.RC]);
+
+            return envScore;
+        },
+        getSeverity: function(score) {
+            if (score === 0.0) return "None";
+            if (score >= 0.1 && score <= 3.9) return "Low";
+            if (score >= 4.0 && score <= 6.9) return "Medium";
+            if (score >= 7.0 && score <= 8.9) return "High";
+            if (score >= 9.0 && score <= 10.0) return "Critical";
+            return "None";
+        },
+        parseVector: function(vector) {
+            if (!vector.startsWith("CVSS:3.1")) return null;
+            const parts = vector.split('/');
+            const metrics = {};
+            for (let i = 1; i < parts.length; i++) {
+                const [key, value] = parts[i].split(':');
+                metrics[key] = value;
+            }
+            return metrics;
+        },
+        roundup: function(d) {
+            return Math.ceil(d * 10) / 10;
+        }
     };
-    const descriptions = {
-      AV: {
-        N: 'Worst: The vulnerable component is bound to the network stack and the set of possible attackers extends beyond the other options listed below, up to and including the entire Internet. Such a vulnerability is often termed “remotely exploitable” and can be thought of as an attack being exploitable at the protocol level one or more network hops away (e.g., across one or more routers).',
-        A: 'Worse: The vulnerable component is bound to the network stack, but the attack is limited at the protocol level to a logically adjacent topology. This can mean an attack must be launched from the same shared physical (e.g., Bluetooth or IEEE 802.11) or logical (e.g., local IP subnet) network, or from within a secure or otherwise limited administrative domain (e.g., MPLS, secure VPN to an administrative network zone). One example is an ARP or neighbor discovery flood denial of service on the local LAN segment.',
-        L: 'Bad: The vulnerable component is not bound to the network stack and the attacker’s path is via read/write/execute capabilities. Either the attacker exploits the vulnerability by accessing the target system locally (e.g., keyboard, console), or remotely (e.g., SSH), or relies on user interaction by another person to perform actions required to exploit the vulnerability (e.g., social engineering).',
-        P: 'Bad: The attack requires the attacker to physically touch or manipulate the vulnerable component. Examples include evil maid and cold boot attacks or peripheral DMA exploits.'
-      },
-      AC: {
-        L: 'Worst: Specialized access conditions or extenuating circumstances do not exist. An attacker can expect repeatable success when attacking the vulnerable component.',
-        H: 'Bad: A successful attack depends on conditions beyond the attacker’s control and requires measurable effort.'
-      },
-      PR: {
-        N: 'Worst: The attacker is unauthorized and requires no access.',
-        L: 'Worse: The attacker requires privileges that provide basic user capabilities that could normally affect only settings and files owned by a user. Alternatively, an attacker with Low privileges has the ability to access only non-sensitive resources.',
-        H: 'Bad: The attacker requires privileges that provide significant (e.g., administrative) control over the vulnerable component allowing access to component-wide settings and files.'
-      },
-      UI: {
-        N: 'Worst: The vulnerable system can be exploited without interaction from any user.',
-        R: 'Bad: Successful exploitation of this vulnerability requires a user to take some action before the vulnerability can be exploited. For example, a successful exploit may only be possible during the installation of an application by a system administrator.'
-      },
-      S: {
-        U: 'Bad: An exploited vulnerability can only affect resources managed by the same security authority. In this case, the vulnerable component and the impacted component are either the same, or both are managed by the same security authority.',
-        C: 'Worst: An exploited vulnerability can affect resources beyond the security scope managed by the security authority of the vulnerable component. In this case, the vulnerable component and the impacted component are different and managed by different security authorities.'
-      },
-      C: {
-        N: 'Good: There is no loss of confidentiality within the impacted component.',
-        L: 'Bad: There is some loss of confidentiality. Access to some restricted information is obtained, but the attacker does not have control over what information is obtained, or the amount or kind of loss is limited. The information disclosure does not cause a direct, serious loss to the impacted component.',
-        H: 'Worst: There is a total loss of confidentiality, resulting in all resources within the impacted component being divulged to the attacker. Alternatively, access to only some restricted information is obtained, but the disclosed information presents a direct, serious impact. For example, an attacker steals the administrator\'s password, or private encryption keys of a web server.'
-      },
-      I: {
-        N: 'Good: There is no loss of integrity within the impacted component.',
-        L: 'Bad: Modification of data is possible, but the attacker does not have control over the consequence of a modification, or the amount of modification is limited. The data modification does not have a direct, serious impact on the impacted component.',
-        H: 'Worst: There is a total loss of integrity, or a complete loss of protection. For example, the attacker is able to modify any/all files protected by the impacted component. Alternatively, only some files can be modified, but malicious modification would present a direct, serious consequence to the impacted component.'
-      },
-      A: {
-        N: 'Good: There is no impact to availability within the impacted component.',
-        L: 'Bad: Performance is reduced or there are interruptions in resource availability. Even if repeated exploitation of the vulnerability is possible, the attacker does not have the ability to completely deny service to legitimate users. The resources in the impacted component are either partially available all of the time, or fully available only some of the time, but overall there is no direct, serious consequence to the impacted component.',
-        H: 'Worst: There is a total loss of availability, resulting in the attacker being able to fully deny access to resources in the impacted component; this loss is either sustained (while the attacker continues to deliver the attack) or persistent (the condition persists even after the attack has completed). Alternatively, the attacker has the ability to deny some availability, but the loss of availability presents a direct, serious consequence to the impacted component.'
-      }
-    };
-    const tooltip = document.getElementById('tooltip');
-    function showTooltip(e, text) {
-      tooltip.textContent = text;
-      tooltip.style.left = e.pageX + 12 + 'px';
-      tooltip.style.top = e.pageY + 12 + 'px';
-      tooltip.style.display = 'block';
-    }
-    function hideTooltip() { tooltip.style.display = 'none'; }
-    function setupButtonGroup(selector, inputId) {
-      document.querySelectorAll(selector).forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll(selector).forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          document.getElementById(inputId).value = btn.dataset.value;
-          calculateIfAll();
-        });
-      });
-    }
-    function calculateIfAll() {
-      const ids = ['attackVector','attackComplexity','privilegesRequired','userInteraction','scope','confidentialityImpact','integrityImpact','availabilityImpact'];
-      if (ids.every(id => document.getElementById(id).value)) calcCVSS();
-    }
-    function calcCVSS() {
-      const av = document.getElementById('attackVector').value;
-      const ac = document.getElementById('attackComplexity').value;
-      const pr = document.getElementById('privilegesRequired').value;
-      const ui = document.getElementById('userInteraction').value;
-      const s  = document.getElementById('scope').value;
-      const c  = document.getElementById('confidentialityImpact').value;
-      const i  = document.getElementById('integrityImpact').value;
-      const a  = document.getElementById('availabilityImpact').value;
-      const exploitability = 8.22 * metrics.AV[av] * metrics.AC[ac] * ((typeof metrics.PR[pr] === 'object') ? metrics.PR[pr][s] : metrics.PR[pr]) * metrics.UI[ui];
-      const iss = 1 - (1 - metrics.CIA[c]) * (1 - metrics.CIA[i]) * (1 - metrics.CIA[a]);
-      let impact = s === 'U' ? 6.42 * iss : 7.52 * (iss - 0.029) - 3.25 * Math.pow((iss - 0.02), 15);
-      let score = impact > 0 ?
-        (s === 'U'
-          ? Math.min(10, Math.ceil((impact + exploitability) * 10) / 10)
-          : Math.min(10, Math.ceil(Math.min(1.08 * (impact + exploitability), 10) * 10) / 10))
-        : 0;
-      let severity =
-        score >= 9   ? 'Critical'
-      : score >= 7   ? 'High'
-      : score >= 4   ? 'Medium'
-      : score > 0    ? 'Low'
-      :                'Info';
-      const disp = document.getElementById('scoreDisplay');
-      disp.className = 'score-display score-' + severity.toLowerCase();
-      disp.textContent = `${score.toFixed(1)} ⇒ ${severity}`;
-      document.getElementById('vectorString').textContent = `CVSS:3.1/AV:${av}/AC:${ac}/PR:${pr}/UI:${ui}/S:${s}/C:${c}/I:${i}/A:${a}`;
-      document.getElementById('results').style.display = 'block';
-    }
-    function copyUrl() {
-      const vec = document.getElementById('vectorString').textContent;
-      if (vec) navigator.clipboard.writeText(`${location.origin}${location.pathname}#${vec}`);
-    }
-    function resetAll() {
-      document.querySelectorAll('.button-group button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('input[type=hidden]').forEach(i => i.value = '');
-      document.getElementById('results').style.display = 'none';
-      history.replaceState(null, '', location.pathname);
-    }
-    function attachTooltips(metricKey, selector) {
-      document.querySelectorAll(selector).forEach(btn => {
-        btn.addEventListener('mouseenter', e => showTooltip(e, descriptions[metricKey][btn.dataset.value]));
-        btn.addEventListener('mousemove',  e => showTooltip(e, descriptions[metricKey][btn.dataset.value]));
-        btn.addEventListener('mouseleave', hideTooltip);
-      });
-    }
-    document.getElementById('copyUrlBtn').addEventListener('click', copyUrl);
-    document.getElementById('resetBtn').addEventListener('click', resetAll);
-    document.getElementById('themeToggleBtn').addEventListener('click', () => {
-      const d = document.documentElement;
-      if (d.getAttribute('data-theme') === 'dark') d.removeAttribute('data-theme');
-      else d.setAttribute('data-theme','dark');
+
+    // --- Main Application Logic ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Shared Elements ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const calculatorSwitchBtn = document.getElementById('calculator-switch');
+        
+        // --- CVSS 4.0 Specific ---
+        const cvss4Container = document.getElementById('cvss4-calculator');
+        const metricsDefinition4 = { base: ['AV', 'AC', 'AT', 'PR', 'UI', 'VC', 'VI', 'VA', 'SC', 'SI', 'SA'], threat: ['E'], environmental: ['CR', 'IR', 'AR', 'MAV', 'MAC', 'MAT', 'MPR', 'MUI', 'MVC', 'MVI', 'MVA', 'MSC', 'MSI', 'MSA'], supplemental: ['S', 'AU', 'R', 'V', 'RE', 'U'] };
+        const metricsState4 = {};
+
+        // --- CVSS 3.1 Specific ---
+        const cvss3Container = document.getElementById('cvss3-calculator');
+        const metricsDefinition3 = {
+            base: ['AV', 'AC', 'PR', 'UI', 'S', 'C', 'I', 'A'],
+            temporal: ['E', 'RL', 'RC'],
+            environmental: ['CR', 'IR', 'AR', 'MAV', 'MAC', 'MPR', 'MUI', 'MS', 'MC', 'MI', 'MA']
+        };
+        const metricsState3 = {};
+
+        // --- Initializer ---
+        function initialize() {
+            initializeState4();
+            initializeState3();
+            setupEventListeners();
+            
+            const savedTheme = localStorage.getItem('cvss-theme') || 'dark';
+            applyTheme(savedTheme);
+            
+            const savedCalc = localStorage.getItem('cvss-calculator') || '4.0';
+            switchCalculator(savedCalc, false); // No animation on first load
+            
+            parseUrlAndInitialize();
+            updateAll4();
+            updateAll3();
+        }
+
+        // --- Shared Event Listeners & Functions ---
+        function setupEventListeners() {
+            themeToggleBtn.addEventListener('click', toggleTheme);
+            calculatorSwitchBtn.addEventListener('click', handleCalculatorSwitch);
+            
+            // CVSS 4.0 Listeners
+            cvss4Container.querySelectorAll('.metric-btn').forEach(button => button.addEventListener('click', handleMetricClick4));
+            document.getElementById('copy-btn-4').addEventListener('click', () => copyUrlToClipboard('4.0'));
+            document.getElementById('reset-btn-4').addEventListener('click', resetCalculator4);
+            document.getElementById('macro-vector-accordion').addEventListener('toggle', event => {
+                const toggleIcon = event.target.querySelector('.toggle-icon');
+                toggleIcon.textContent = event.target.open ? '−' : '+';
+            });
+
+            // CVSS 3.1 Listeners
+            cvss3Container.querySelectorAll('.metric-btn').forEach(button => button.addEventListener('click', handleMetricClick3));
+            document.getElementById('copy-btn-3').addEventListener('click', () => copyUrlToClipboard('3.1'));
+            document.getElementById('reset-btn-3').addEventListener('click', resetCalculator3);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('cvss-theme', newTheme);
+            applyTheme(newTheme);
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.body.classList.add('light-theme');
+                themeToggleBtn.textContent = '🌙';
+            } else {
+                document.body.classList.remove('light-theme');
+                themeToggleBtn.textContent = '💡';
+            }
+        }
+
+        function handleCalculatorSwitch() {
+            const currentCalc = cvss4Container.classList.contains('active') ? '4.0' : '3.1';
+            const newCalc = currentCalc === '4.0' ? '3.1' : '4.0';
+            switchCalculator(newCalc, true);
+        }
+        
+        function switchCalculator(version, animate) {
+            if (version === '3.1') {
+                cvss4Container.classList.remove('active');
+                cvss3Container.classList.add('active');
+                calculatorSwitchBtn.innerHTML = '4.0';
+            } else {
+                cvss3Container.classList.remove('active');
+                cvss4Container.classList.add('active');
+                calculatorSwitchBtn.innerHTML = '3.1';
+            }
+            if (animate) {
+                calculatorSwitchBtn.style.transform = 'scale(1.1)';
+                setTimeout(() => calculatorSwitchBtn.style.transform = 'scale(1)', 200);
+            }
+            localStorage.setItem('cvss-calculator', version);
+        }
+
+        function copyUrlToClipboard(version) {
+            const vectorString = version === '4.0' ? new Vector(generateVectorStringFromState4()).raw : generateVectorStringFromState3();
+            const url = `${window.location.origin}${window.location.pathname}?v=${version}&vector=${encodeURIComponent(vectorString)}`;
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                const copyBtn = document.getElementById(`copy-btn-${version === '4.0' ? '4' : '3'}`);
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = successful ? '✅ Copied!' : '❌ Failed';
+                setTimeout(() => { copyBtn.innerHTML = originalText; }, 2000);
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+            }
+
+            document.body.removeChild(textarea);
+        }
+        
+        function parseUrlAndInitialize() {
+            const params = new URLSearchParams(window.location.search);
+            const version = params.get('v');
+            const vector = params.get('vector');
+            if (version && vector) {
+                switchCalculator(version, false);
+               if (version === '4.0') {
+                    try {
+                        const tempVector = new Vector(vector);
+                        Object.assign(metricsState4, tempVector.metrics);
+                    } catch (e) { console.error("Failed to parse v4.0 vector from URL:", e); initializeState4(); }
+                } else if (version === '3.1') {
+                    const parsedMetrics = CVSS31.parseVector(vector);
+                    if (parsedMetrics) {
+                        // Ensure all metrics are present, falling back to defaults if not in vector
+                        const defaults = {};
+                        [...metricsDefinition3.base, ...metricsDefinition3.temporal, ...metricsDefinition3.environmental].forEach(m => {
+                            defaults[m] = CVSS31.Weight[m] ? Object.keys(CVSS31.Weight[m])[0] : 'X';
+                        });
+                        Object.assign(metricsState3, defaults, parsedMetrics);
+                    } else {
+                        console.error("Failed to parse v3.1 vector from URL");
+                        initializeState3();
+                    }
+                }
+            }
+        }
+        
+        // --- CVSS 4.0 Functions ---
+        function initializeState4() {
+            metricsDefinition4.base.forEach(metric => { metricsState4[metric] = null; });
+            ['threat', 'environmental', 'supplemental'].forEach(groupName => {
+                 const groupMetrics = Vector.METRICS[groupName.toUpperCase()] || {};
+                 Object.keys(groupMetrics).forEach(metricKey => { metricsState4[metricKey] = groupMetrics[metricKey][0]; });
+            });
+        }
+        
+        function handleMetricClick4(event) {
+            const button = event.currentTarget;
+            metricsState4[button.parentElement.dataset.metric] = button.dataset.value;
+            updateAll4();
+        }
+
+        function resetCalculator4() {
+            initializeState4();
+            history.pushState(null, '', window.location.pathname);
+            updateAll4();
+        }
+
+        function areBaseMetricsSelected4() {
+            return metricsDefinition4.base.every(metric => metricsState4[metric] !== null);
+        }
+
+        function updateAll4() {
+            updateActiveButtons4();
+            if (areBaseMetricsSelected4()) {
+                const mainVector = new Vector(generateVectorStringFromState4());
+                const scores = calculateAllScores4(metricsState4);
+                updateScoresUI4(scores);
+                updateVectorStringUI4(mainVector.raw);
+                updateMacroVectorUI4(mainVector);
+            } else {
+                resetUIDisplays4();
+                updateVectorStringUI4(generateVectorStringFromState4());
+            }
+        }
+        
+        function updateActiveButtons4() {
+            cvss4Container.querySelectorAll('.metric-buttons[data-metric]').forEach(group => {
+                const metric = group.dataset.metric;
+                const currentValue = metricsState4[metric];
+                group.querySelectorAll('.metric-btn').forEach(button => {
+                    button.classList.toggle('active', button.dataset.value === currentValue);
+                });
+            });
+        }
+
+        function updateScoresUI4(scores) {
+            updateScoreEntry4('b', scores.cvssB);
+            updateScoreEntry4('bt', scores.cvssBt);
+            updateScoreEntry4('be', scores.cvssBe);
+            updateScoreEntry4('bte', scores.cvssBte);
+        }
+
+        function updateScoreEntry4(type, score) {
+            const scoreEl = document.getElementById(`cvss-${type}-score`);
+            const severityEl = document.getElementById(`cvss-${type}-severity`);
+            const rating = getSeverityRating4(score);
+            scoreEl.textContent = score.toFixed(1);
+            severityEl.textContent = rating.name;
+            severityEl.style.color = rating.color;
+        }
+
+        function updateVectorStringUI4(vectorString) {
+            document.getElementById('vector-string-display').textContent = vectorString;
+        }
+        
+        function updateMacroVectorUI4(mainVector) {
+            document.getElementById('macro-vector-value').textContent = mainVector.equivalentClasses;
+            const breakdown = mainVector.severityBreakdown;
+            const severityColorMap = { 'High': 'var(--severity-high-text)', 'Medium': 'var(--severity-medium-text)', 'Low': 'var(--severity-low-text)' };
+            for (const key in breakdown) {
+                const elementId = key.toLowerCase().replace(/\s+/g, '-') + '-value';
+                const element = document.getElementById(elementId);
+                if (element) {
+                    const severity = breakdown[key] || 'N/A';
+                    element.textContent = severity;
+                    element.style.color = severityColorMap[severity] || 'var(--text-color)';
+                }
+            }
+        }
+        //SECNORA 
+        function generateVectorStringFromState4() {
+            let vector = "CVSS:4.0";
+            const allMetricsInOrder = [...metricsDefinition4.base, ...metricsDefinition4.threat, ...Object.keys(Vector.METRICS.ENVIRONMENTAL), ...Object.keys(Vector.METRICS.SUPPLEMENTAL)];
+            allMetricsInOrder.forEach(metricKey => {
+                if (metricsState4[metricKey] !== null) {
+                    if (!metricsDefinition4.base.includes(metricKey) && metricsState4[metricKey] === 'X') return;
+                    vector += `/${metricKey}:${metricsState4[metricKey]}`;
+                }
+            });
+            return vector;
+        }
+
+        function getSeverityRating4(score) {
+            const severity = new CVSS40().calculateSeverityRating(score);
+            const colorMap = { "None": 'var(--severity-none)', "Low": 'var(--severity-low)', "Medium": 'var(--severity-medium)', "High": 'var(--severity-high)', "Critical": 'var(--severity-critical)' };
+            return { name: severity, color: colorMap[severity] || 'var(--text-color)' };
+        }
+
+        function calculateAllScores4(state) {
+            const baseMetrics = {};
+            metricsDefinition4.base.forEach(m => baseMetrics[m] = state[m]);
+            const threatMetrics = {};
+            metricsDefinition4.threat.forEach(m => threatMetrics[m] = state[m]);
+            const envMetrics = {};
+            Object.keys(Vector.METRICS.ENVIRONMENTAL).forEach(m => envMetrics[m] = state[m]);
+            const toRawString = (metrics) => {
+                const tempVector = new Vector();
+                tempVector.metrics = { ...tempVector.metrics, ...metrics };
+                return tempVector.raw;
+            };
+            return {
+                cvssB: new CVSS40(toRawString(baseMetrics)).score,
+                cvssBt: new CVSS40(toRawString({ ...baseMetrics, ...threatMetrics })).score,
+                cvssBe: new CVSS40(toRawString({ ...baseMetrics, ...envMetrics })).score,
+                cvssBte: new CVSS40(toRawString({ ...baseMetrics, ...threatMetrics, ...envMetrics })).score,
+            };
+        }
+        
+        function resetUIDisplays4() {
+            ['b', 'bt', 'be', 'bte'].forEach(type => {
+                document.getElementById(`cvss-${type}-score`).textContent = '-.-';
+                const severityEl = document.getElementById(`cvss-${type}-severity`);
+                const rating = getSeverityRating4(0);
+                severityEl.textContent = rating.name;
+                severityEl.style.color = rating.color;
+            });
+            document.getElementById('macro-vector-value').textContent = '';
+            document.querySelectorAll('#macro-vector-accordion .severity-breakdown-grid span:last-child').forEach(el => {
+                 el.textContent = '';
+                 el.style.color = 'var(--text-color)';
+            });
+            document.getElementById('macro-vector-accordion').open = false;
+        }
+
+        // --- CVSS 3.1 Functions ---
+        function initializeState3() {
+            metricsDefinition3.base.forEach(m => metricsState3[m] = null);
+            [...metricsDefinition3.temporal, ...metricsDefinition3.environmental].forEach(m => {
+                metricsState3[m] = 'X';
+            });
+        }
+
+        function handleMetricClick3(event) {
+            const button = event.currentTarget;
+            metricsState3[button.parentElement.dataset.metric3] = button.dataset.value;
+            updateAll3();
+        }
+
+        function resetCalculator3() {
+            initializeState3();
+            history.pushState(null, '', window.location.pathname);
+            updateAll3();
+        }
+
+        function areBaseMetricsSelected3() {
+            return metricsDefinition3.base.every(metric => metricsState3[metric] !== null);
+        }
+
+        function updateAll3() {
+            updateActiveButtons3();
+            if (areBaseMetricsSelected3()) {
+                const tempState = { ...metricsState3 };
+                // Temporarily assign default 'X' values for non-base metrics if they are null, for calculation
+                Object.keys(tempState).forEach(key => {
+                    if (tempState[key] === null) tempState[key] = 'X';
+                });
+                const vectorForCalc = generateVectorStringFromState3(tempState);
+                const scores = CVSS31.calculateScores(vectorForCalc);
+                if (scores) {
+                    updateScoresUI3(scores);
+                    updateVectorStringUI3(generateVectorStringFromState3(metricsState3)); // Display real state
+                }
+            } else {
+                resetUIDisplays3();
+                updateVectorStringUI3(generateVectorStringFromState3(metricsState3));
+            }
+        }
+        
+        function updateActiveButtons3() {
+            cvss3Container.querySelectorAll('.metric-buttons[data-metric3]').forEach(group => {
+                const metric = group.dataset.metric3;
+                const currentValue = metricsState3[metric];
+                group.querySelectorAll('.metric-btn').forEach(button => {
+                    button.classList.toggle('active', button.dataset.value === currentValue);
+                });
+            });
+        }
+        
+        function updateScoresUI3(scores) {
+            updateScoreEntry3('base', scores.base);
+            updateScoreEntry3('temporal', scores.temporal);
+            updateScoreEntry3('environmental', scores.environmental);
+        }
+
+        function updateScoreEntry3(type, score) {
+            const scoreEl = document.getElementById(`cvss3-${type}-score`);
+            const severityEl = document.getElementById(`cvss3-${type}-severity`);
+            const severity = CVSS31.getSeverity(score);
+            scoreEl.textContent = score.toFixed(1);
+            severityEl.textContent = severity;
+            const colorMap = { "None": 'var(--severity-none)', "Low": 'var(--severity-low)', "Medium": 'var(--severity-medium)', "High": 'var(--severity-high)', "Critical": 'var(--severity-critical)' };
+            severityEl.style.color = colorMap[severity] || 'var(--text-color)';
+        }
+        
+        function updateVectorStringUI3(vectorString) {
+            document.getElementById('vector-string-display-3').textContent = vectorString;
+        }
+
+        function generateVectorStringFromState3(state = metricsState3) {
+            let vector = "CVSS:3.1";
+            const orderedMetrics = [...metricsDefinition3.base, ...metricsDefinition3.temporal, ...metricsDefinition3.environmental];
+            let hasBase = false;
+            orderedMetrics.forEach(metric => {
+                const value = state[metric];
+                if (value !== null) {
+                    if (metricsDefinition3.base.includes(metric)) hasBase = true;
+                    if (value !== 'X' || (metricsDefinition3.base.includes(metric) && hasBase)) {
+                         vector += `/${metric}:${value}`;
+                    }
+                }
+            });
+             if (!areBaseMetricsSelected3()) return "CVSS:3.1";
+            return vector;
+        }
+        
+        function resetUIDisplays3() {
+            ['base', 'temporal', 'environmental'].forEach(type => {
+                document.getElementById(`cvss3-${type}-score`).textContent = '-.-';
+                const severityEl = document.getElementById(`cvss3-${type}-severity`);
+                const severity = CVSS31.getSeverity(0);
+                severityEl.textContent = severity;
+                severityEl.style.color = 'var(--severity-none)';
+            });
+        }
+        
+        // --- Initial Load ---
+        initialize();
     });
-    document.getElementById('cvss4Btn').addEventListener('click', () => {
-      const btn = document.getElementById('cvss4Btn');
-      if (btn.textContent === 'CVSS 4.0') {
-        document.getElementById('pageTitle').textContent = 'CVSS v4.0 Base Score Calculator';
-        document.getElementById('cvss31Form').innerHTML = '<p>CVSS 4.0 calculator coming soon.</p>';
-        document.getElementById('copyUrlBtn').style.display = 'none';
-        document.getElementById('resetBtn').style.display = 'none';
-        btn.textContent = 'CVSS 3.1';
-      } else {
-        location.reload();
-      }
-    });
-    window.addEventListener('load', () => {
-      setupButtonGroup('.av-button','attackVector');
-      setupButtonGroup('.ac-button','attackComplexity');
-      setupButtonGroup('.pr-button','privilegesRequired');
-      setupButtonGroup('.ui-button','userInteraction');
-      setupButtonGroup('.s-button','scope');
-      setupButtonGroup('.c-button','confidentialityImpact');
-      setupButtonGroup('.i-button','integrityImpact');
-      setupButtonGroup('.a-button','availabilityImpact');
-      ['AV','AC','PR','UI','S','C','I','A'].forEach(k => attachTooltips(k, '.' + k.toLowerCase() + '-button'));
-      const hash = decodeURIComponent(location.hash.slice(1));
-      if (hash.startsWith('CVSS:3.1/')) {
-        hash.split('/').slice(1).forEach(p => {
-          const [k,v] = p.split(':');
-          const map = { AV:'av-button', AC:'ac-button', PR:'pr-button', UI:'ui-button', S:'s-button', C:'c-button', I:'i-button', A:'a-button' };
-          const btn = document.querySelector(`.${map[k]}[data-value=\"${v}\"]`);
-          if (btn) btn.click();
-        });
-      }
-    });
-  </script><br><br><br><br><br><br><br>
-<footer>
-<img id="bottomLogo" src="logo.png" alt="Logo">
-</footer>
+    </script>
 </body>
 </html>
